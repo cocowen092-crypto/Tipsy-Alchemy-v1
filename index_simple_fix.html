@@ -1,0 +1,2153 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no" />
+<title>微醺炼金术 · Tipsy Alchemy</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = { theme: { extend: {
+    colors: { ink:'#0b0a0e', ink2:'#15131b', char:'#1f1c26',
+              amber:'#d4a24c', amber2:'#f0c674', neon:'#a479ff', neon2:'#5d3df5',
+              parch:'#e9dcc1', mute:'#8a8092' },
+    fontFamily: { serif:['"Noto Serif SC"','serif'], rune:['"Cinzel"','serif'] }
+  }}}
+</script>
+<style>
+  :root { color-scheme: dark; }
+  html,body{ background:#000; color:#e9dcc1; overflow-x:hidden; height:100%; }
+  body{
+    font-family:'Noto Serif SC', serif;
+    display:flex; align-items:center; justify-content:center;
+    min-height:100dvh;
+    background: radial-gradient(circle at 20% 0%, #1a1228, #050308 70%);
+  }
+  /* === 手机壳 === */
+  .phone{
+    width: 100%;
+    max-width: 390px;
+    height: 100dvh;
+    max-height: 844px;
+    background:#0b0a0e;
+    position:relative;
+    border-radius: 36px;
+    overflow:hidden;
+    box-shadow: 0 30px 80px rgba(0,0,0,.7), 0 0 0 8px #1a1822, 0 0 0 9px #2a2632;
+    display:flex; flex-direction:column;
+  }
+  @media (max-width: 420px){ .phone{ max-width:100%; max-height:100dvh; border-radius:0; box-shadow:none; } }
+  .rune{ font-family:'Cinzel', serif; letter-spacing:.18em; }
+
+  /* 顶部状态栏（仿小程序） */
+  .statusbar{
+    height:36px; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 0 18px; font-size:12px; color:#e9dcc1;
+    background: linear-gradient(180deg, rgba(0,0,0,.6), transparent);
+  }
+  .navbar{
+    height:44px; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 0 16px; border-bottom:1px solid rgba(212,162,76,.15);
+    background:rgba(11,10,14,.85); backdrop-filter:blur(8px);
+  }
+  .navbar h1{ font-family:'Cinzel', serif; letter-spacing:.2em; font-size:13px; color:#f0c674; }
+  .nav-icon{ width:28px; height:28px; display:grid; place-items:center; color:#f0c674; }
+
+  /* 主滚动区 */
+  .scroll{ flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:84px; }
+  .scroll::-webkit-scrollbar{ width:0; }
+
+  /* 底部 TabBar */
+  .tabbar{
+    position:absolute; left:0; right:0; bottom:0;
+    height:68px; padding-bottom:env(safe-area-inset-bottom);
+    background: rgba(15,13,20,.95); backdrop-filter:blur(12px);
+    border-top:1px solid rgba(212,162,76,.18);
+    display:flex; justify-content:space-around; align-items:center;
+    z-index:30;
+  }
+  .tab{ flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; padding-top:8px; color:#6a6275; cursor:pointer; }
+  .tab.active{ color:#f0c674; }
+  .tab .ti{ font-size:22px; line-height:1; }
+  .tab .tl{ font-size:10px; letter-spacing:.05em; }
+  .tab.center .ti{
+    margin-top:-22px; width:52px; height:52px; border-radius:50%;
+    display:grid; place-items:center;
+    background: radial-gradient(circle at 30% 30%, #f0c674, #b9893a);
+    color:#1a140a; font-size:24px;
+    box-shadow: 0 8px 24px rgba(212,162,76,.45), inset 0 1px 0 rgba(255,255,255,.4);
+  }
+
+  /* 通用 */
+  .card{ background:linear-gradient(180deg, rgba(31,28,38,.95), rgba(21,19,27,.95));
+         border:1px solid rgba(212,162,76,.18); border-radius:16px; }
+  .chip{ border:1px solid rgba(212,162,76,.35); background:rgba(212,162,76,.06);
+         color:#f0c674; border-radius:9999px; padding:.35rem .75rem; font-size:.75rem; cursor:pointer; }
+  .chip.active{ background:#d4a24c; color:#0b0a0e; box-shadow:0 0 14px rgba(212,162,76,.45); }
+  .btn-gold{ background: linear-gradient(180deg,#f0c674,#b9893a); color:#1a140a;
+             font-weight:700; border-radius:12px; padding:.7rem 1rem; cursor:pointer;
+             box-shadow:0 6px 18px rgba(212,162,76,.35), inset 0 1px 0 rgba(255,255,255,.4); }
+  .btn-gold:disabled{ opacity:.5; }
+  .btn-ghost{ border:1px solid rgba(212,162,76,.35); color:#f0c674;
+              border-radius:12px; padding:.55rem .9rem; cursor:pointer; font-size:.8rem; }
+  .ink-divider{ height:1px; background:linear-gradient(90deg, transparent, rgba(212,162,76,.4), transparent); }
+
+  /* 移动端点击优化 */
+  button, .chip, [data-rm], [data-add], select { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  .cab-rm-btn { padding: .4rem .8rem; min-height: 32px; min-width: 44px; display:inline-flex; align-items:center; justify-content:center; }
+
+  /* === 炼金台主区（Canvas 物理舞台 + 酒杯） === */
+  .stage-wrap{
+    position:relative; height: 400px; margin: 4px 12px 0;
+    border-radius: 18px; overflow:hidden;
+    background:
+      radial-gradient(420px 280px at 50% 60%, rgba(164,121,255,.18), transparent 60%),
+      radial-gradient(220px 160px at 50% 30%, rgba(240,198,116,.12), transparent 60%),
+      #11101a;
+    border:1px solid rgba(212,162,76,.25);
+  }
+  #stageCanvas{ position:absolute; inset:0; width:100%; height:100%; }
+  .stage-overlay{
+    position:absolute; left:0; right:0; top:6px;
+    text-align:center; pointer-events:none;
+  }
+  .stage-overlay .rune{ color:#d4a24c; font-size:10px; }
+  .stage-overlay .hint{ color:#8a8092; font-size:10px; margin-top:1px; }
+
+  /* 已选条 */
+  .selected-strip{ display:flex; gap:.35rem; flex-wrap:wrap; min-height:28px; padding:0 14px; }
+  .tag-mood{
+    background:rgba(212,162,76,.12); border:1px solid rgba(212,162,76,.5);
+    color:#f0c674; padding:.18rem .55rem; border-radius:9999px;
+    font-size:.7rem; display:inline-flex; align-items:center; gap:.3rem;
+  }
+
+  /* 标识徽标 */
+  .badge{ display:inline-flex; align-items:center; gap:.2rem; padding:.15rem .5rem;
+          border-radius:9999px; font-size:.65rem; font-weight:700; letter-spacing:.04em; }
+  .badge-clean{ background:linear-gradient(135deg,#7be3c8,#2e9e85); color:#06231e; }
+  .badge-low  { background:linear-gradient(135deg,#a479ff,#5d3df5); color:#fff; }
+  .badge-warn { background:linear-gradient(135deg,#ff9b6a,#d4582e); color:#2a0f00; }
+  .badge-fuzzy{ background:linear-gradient(135deg,#ffd1dc,#ff7da6); color:#400015; }
+
+  /* 酒图占位 */
+  .cocktail-art{
+    width:100%; aspect-ratio: 4/3; border-radius:14px;
+    overflow:hidden; position:relative;
+    background: linear-gradient(160deg, var(--c1,#a479ff), var(--c2,#5d3df5));
+  }
+  .cocktail-art .glass{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:38%; aspect-ratio:1/1.1;
+    background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.05));
+    border:1px solid rgba(255,255,255,.5);
+    border-radius:8px 8px 16px 16px;
+    box-shadow: inset 0 -10px 0 rgba(0,0,0,.18), 0 10px 30px rgba(0,0,0,.4);
+  }
+  .cocktail-art .label-emoji{
+    position:absolute; right:8px; top:8px; background:rgba(0,0,0,.4);
+    padding:3px 8px; border-radius:9999px; font-size:16px;
+  }
+  .cocktail-art::after{
+    content:''; position:absolute; inset:0;
+    background:
+      radial-gradient(140px 80px at 25% 30%, rgba(255,255,255,.25), transparent 70%),
+      radial-gradient(120px 60px at 80% 80%, rgba(0,0,0,.25), transparent 70%);
+  }
+
+  /* 模态 */
+  .modal-mask{ position:absolute; inset:0; z-index:60; background:rgba(0,0,0,.75);
+               backdrop-filter:blur(6px); display:grid; place-items:center; padding:18px; }
+  .modal-card{ width:100%; max-width:340px; }
+
+  /* 分享卡 */
+  .share-card{
+    background:
+      radial-gradient(600px 300px at 30% 0%, rgba(164,121,255,.25), transparent 60%),
+      linear-gradient(180deg,#15131b,#0b0a0e);
+    border:1px solid rgba(212,162,76,.45); color:#e9dcc1; border-radius:16px;
+  }
+
+  /* 故事编辑 */
+  textarea, input, select{ font-family:inherit; }
+  .story-edit{ background:rgba(11,10,14,.6); border:1px solid rgba(212,162,76,.3);
+               border-radius:10px; padding:.55rem .7rem; width:100%; color:#e9dcc1;
+               font-size:.85rem; line-height:1.6; min-height:90px; resize:none; }
+
+  /* 出现动画 */
+  .pop{ animation: pop .35s cubic-bezier(.2,.9,.3,1.2); }
+  @keyframes pop{ from{ opacity:0; transform: translateY(8px) scale(.98);}
+                  to  { opacity:1; transform: translateY(0)   scale(1);} }
+
+
+  /* Toast */
+  #toast{ position:absolute; left:50%; transform:translateX(-50%); bottom:96px;
+          background:#15131b; border:1px solid rgba(212,162,76,.4); color:#f0c674;
+          padding:.5rem 1rem; border-radius:9999px; font-size:.78rem; z-index:90;
+          opacity:0; transition: opacity .3s; pointer-events:none; }
+</style>
+</head>
+<body>
+<div class="phone" id="phone">
+
+  <!-- 状态栏 -->
+  <div class="statusbar">
+    <span id="stTime">21:30</span>
+    <span class="rune" style="font-size:10px;color:#d4a24c">TIPSY · ALCHEMY</span>
+    <span>📶 ⚡</span>
+  </div>
+
+  <!-- 顶部导航 -->
+  <div class="navbar">
+    <button class="nav-icon" id="knowledgeBtn" title="调酒科普">📚</button>
+    <h1 id="navTitle">炼金台</h1>
+    <button class="nav-icon" id="modeBtn" title="干净微醺">🌙</button>
+  </div>
+
+  <!-- 主滚动 -->
+  <div class="scroll" id="scroll">
+
+    <!-- ========== Page: 炼金台 ========== -->
+    <section id="pageBrew" class="page">
+      <!-- 物理气泡舞台 + 瓶子 -->
+      <div class="stage-wrap">
+        <div class="stage-overlay">
+          <div class="rune">CHOOSE YOUR MOOD</div>
+          <div class="hint">点气泡选情绪 · 可叠加 · 拖动也可以</div>
+        </div>
+        <canvas id="stageCanvas"></canvas>
+      </div>
+
+      <div class="px-3 mt-1.5">
+        <div id="selectedStrip" class="selected-strip">
+          <span class="text-mute text-xs">点击气泡选情绪 · 可叠加</span>
+        </div>
+      </div>
+
+      <div class="px-3 mt-1.5">
+        <div class="relative">
+          <textarea id="moodInput" rows="1" placeholder="说说此刻的心情 · 语音或打字都行（可选）"
+            class="w-full bg-ink2 border border-amber/20 focus:border-amber/60 outline-none rounded-xl p-2.5 pr-10 text-sm placeholder:text-mute"></textarea>
+          <button id="micBtn" title="语音" class="absolute right-2 bottom-1.5 chip text-xs">🎙</button>
+        </div>
+      </div>
+
+      <div class="px-3 mt-1.5 flex items-center justify-between gap-2">
+        <button id="brewBtn" class="btn-gold flex-1 text-sm">⚗ 开始炼制</button>
+        <button id="randomBtn" class="btn-ghost">🎲</button>
+        <label class="flex items-center gap-1 text-[11px] text-mute select-none">
+          <input id="fuzzyMode" type="checkbox" class="accent-amber"/> 模糊度量
+        </label>
+      </div>
+
+      <!-- 结果 -->
+      <div id="resultWrap" class="hidden mt-4 px-3">
+        <div class="ink-divider mb-3"></div>
+        <div id="resultCard" class="card p-4 pop"></div>
+        <div class="mt-3 grid grid-cols-2 gap-2">
+          <button id="reBrewBtn"   class="btn-ghost">↻ 再调一杯</button>
+          <button id="uploadPhotoBtn" class="btn-ghost">📷 上传实物</button>
+          <button id="shareBtn"    class="btn-ghost">🔗 分享卡</button>
+          <button id="saveBtn"     class="btn-gold text-sm">📓 收录小酒馆</button>
+        </div>
+        <input id="photoInput" type="file" accept="image/*" class="hidden"/>
+      </div>
+    </section>
+
+    <!-- ========== Page: 酒柜 ========== -->
+    <section id="pageCabinet" class="page hidden">
+      <div class="px-3 pt-3">
+        <div class="card p-4">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <div class="rune text-amber text-[10px]">YOUR CABINET</div>
+              <div class="text-base font-semibold mt-0.5">我的酒柜</div>
+            </div>
+            <div class="flex gap-2">
+              <button id="photoBtn" class="btn-ghost">📷 识别</button>
+              <button id="addBtn"   class="btn-gold text-sm">＋ 添加</button>
+            </div>
+          </div>
+          <input id="cabinetPhoto" type="file" accept="image/*" capture="environment" class="hidden"/>
+
+          <!-- 添加表单：分类 + 名称 + 余量 -->
+          <div id="addForm" class="hidden space-y-2 mb-3">
+            <div class="flex gap-2">
+              <select id="addCategory" class="w-24 flex-shrink-0 bg-ink2 border border-amber/20 rounded-lg px-2 py-2 text-xs">
+                <option value="基酒">基酒</option><option value="利口酒">利口酒</option>
+                <option value="辅料">辅料</option><option value="饮料">饮料</option>
+                <option value="水果">水果</option>
+              </select>
+              <select id="addName" class="flex-1 min-w-0 bg-ink2 border border-amber/20 rounded-lg px-2 py-2 text-xs"></select>
+            </div>
+            <div class="flex gap-2">
+              <select id="addAmount" class="flex-1 min-w-0 bg-ink2 border border-amber/20 rounded-lg px-2 py-2 text-xs">
+                <option value="">余量(可选)</option>
+                <option value="500">充足</option>
+                <option value="200">大半瓶</option>
+                <option value="50">不多了</option>
+                <option value="10">见底了</option>
+              </select>
+              <button id="addSubmit" class="btn-gold text-xs flex-shrink-0 px-4">加入酒柜</button>
+            </div>
+          </div>
+
+          <!-- AI 识别预览 -->
+          <div id="aiPreview" class="hidden mb-3">
+            <div class="rune text-amber text-[10px] mb-2">AI 识别 · 请确认</div>
+            <div id="aiList" class="space-y-2"></div>
+            <div class="mt-2 flex gap-2">
+              <button id="aiAcceptAll" class="btn-gold text-xs flex-1">全部加入</button>
+              <button id="aiCancel"    class="btn-ghost flex-1">取消</button>
+            </div>
+          </div>
+
+          <div id="cabinetGrid" class="space-y-2"></div>
+        </div>
+
+        <div class="card p-4 mt-3">
+          <div class="rune text-amber text-[10px] mb-2">日常常用 · 一键加入</div>
+          <div id="presetGrid" class="flex flex-wrap gap-1.5"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== Page: 小酒馆 ========== -->
+    <section id="pageBar" class="page hidden">
+      <div class="px-3 pt-3">
+        <div class="card p-4 flex items-center justify-between">
+          <div>
+            <div class="rune text-amber text-[10px]">MY LITTLE BAR</div>
+            <div class="text-base font-semibold mt-0.5">我的小酒馆</div>
+          </div>
+          <div class="text-[11px] text-mute">共 <b id="barCount" class="text-amber">0</b> 杯
+            <button id="clearBarBtn" class="btn-ghost ml-2 !py-1 !px-2 text-[11px]">清空</button>
+          </div>
+        </div>
+        <div id="barGrid" class="grid grid-cols-2 gap-2 mt-3"></div>
+        <div id="barEmpty" class="text-center py-12 text-mute text-sm hidden">
+          还没有收录任何酒。<br/>先去炼金台做一杯吧。
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== Page: 配方库 ========== -->
+    <section id="pageLib" class="page hidden">
+      <div class="px-3 pt-3">
+        <div class="card p-4">
+          <div class="rune text-amber text-[10px]">CLASSIC RECIPES</div>
+          <div class="text-base font-semibold mt-0.5">经典配方库</div>
+          <div class="mt-3 flex flex-wrap gap-1.5" id="libFilters"></div>
+        </div>
+        <div id="libGrid" class="space-y-2 mt-3"></div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- 底部 TabBar -->
+  <nav class="tabbar">
+    <div class="tab active" data-tab="brew"><div class="ti">⚗</div><div class="tl">炼金台</div></div>
+    <div class="tab"        data-tab="cabinet"><div class="ti">🍾</div><div class="tl">酒柜</div></div>
+    <div class="tab center" data-tab="brew"><div class="ti">+</div><div class="tl">　</div></div>
+    <div class="tab"        data-tab="bar"><div class="ti">🪔</div><div class="tl">小酒馆</div></div>
+    <div class="tab"        data-tab="lib"><div class="ti">📖</div><div class="tl">配方</div></div>
+  </nav>
+
+  <!-- 通用模态 -->
+  <div id="modal" class="hidden">
+    <div class="modal-mask">
+      <div class="modal-card card p-4 pop relative">
+        <button id="modalClose" class="absolute top-1 right-2 text-mute text-xl">×</button>
+        <div id="modalBody"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 分享卡模态 -->
+  <div id="shareModal" class="hidden">
+    <div class="modal-mask">
+      <div class="modal-card pop relative" style="max-height:90vh; overflow-y:auto;">
+        <button id="shareClose" class="absolute -top-2 -right-2 z-10 w-7 h-7 rounded-full bg-ink2 border border-amber/40 text-amber">×</button>
+        <div id="shareCanvas" class="share-card p-5"></div>
+        <!-- 生成的图片会显示在这里 -->
+        <div id="shareImgWrap" class="hidden mt-2 text-center">
+          <img id="shareImg" class="w-full rounded-xl border border-amber/30"/>
+          <div class="text-[11px] text-mute mt-2">👆 长按图片保存到相册</div>
+          <button id="shareBack" class="btn-ghost text-xs mt-2 w-full">← 返回分享卡</button>
+        </div>
+        <div class="mt-2 grid grid-cols-2 gap-2">
+          <button id="shareDownload" class="btn-gold text-xs">⬇ 生成图片</button>
+          <button id="shareCopy"     class="btn-ghost text-xs">📋 复制故事</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 调酒科普模态 -->
+  <div id="knowledgeModal" class="hidden">
+    <div class="modal-mask">
+      <div class="modal-card card p-5 pop relative" style="max-height:85vh; overflow-y:auto;">
+        <button id="knowledgeClose" class="absolute top-1 right-2 text-mute text-xl">×</button>
+        <div class="rune text-amber text-[10px]">BARTENDING BASICS</div>
+        <div class="text-lg font-semibold mt-0.5">调酒小课堂</div>
+        <div class="text-mute text-xs mt-1">新手必备基础知识</div>
+        <div class="my-3 ink-divider"></div>
+
+        <!-- 调酒知识科普海报 - 点击可放大查看 -->
+        <div id="knowledgePoster" class="w-full rounded-xl overflow-hidden mb-4 cursor-pointer" onclick="openImageModal('./cocktail-knowledge.jpg', '调酒知识科普')">
+          <img src="./cocktail-knowledge.jpg" 
+               alt="调酒知识科普海报" 
+               class="w-full h-auto rounded-xl"
+               onerror="this.parentElement.innerHTML='<div class=\'bg-ink2 border border-amber/15 min-h-[200px] flex items-center justify-center text-center text-mute text-xs py-10\'><div><div class=\'text-3xl mb-2\'>🍸</div><div>科普海报图片未找到</div><div class=\'text-[10px] mt-1\'>请上传 cocktail-knowledge.jpg</div></div></div>'">
+        </div>
+
+        <!-- 基础知识文字版 -->
+        <div class="space-y-3 text-sm text-parch/90 leading-relaxed">
+          <div class="bg-ink2 rounded-xl border border-amber/15 p-3">
+            <div class="text-amber font-semibold text-xs mb-1">🧊 六大基酒</div>
+            <div class="text-xs">金酒 · 伏特加 · 威士忌 · 朗姆酒 · 龙舌兰 · 白兰地<br/>这是所有鸡尾酒的灵魂骨架。</div>
+          </div>
+          <div class="bg-ink2 rounded-xl border border-amber/15 p-3">
+            <div class="text-amber font-semibold text-xs mb-1">⚖️ 万能公式</div>
+            <div class="text-xs">基酒 2 : 酸 1 : 甜 0.5~1<br/>例：60ml 金酒 + 30ml 青柠 + 15ml 糖浆 = 经典 Gimlet</div>
+          </div>
+          <div class="bg-ink2 rounded-xl border border-amber/15 p-3">
+            <div class="text-amber font-semibold text-xs mb-1">🔧 基础手法</div>
+            <div class="text-xs"><b>摇</b>(Shake)：有果汁/蛋清时摇匀<br/><b>搅</b>(Stir)：纯烈酒搅拌更优雅<br/><b>兑</b>(Build)：直接在杯中层叠</div>
+          </div>
+          <div class="bg-ink2 rounded-xl border border-amber/15 p-3">
+            <div class="text-amber font-semibold text-xs mb-1">🧂 盐边/糖边</div>
+            <div class="text-xs">用青柠抹湿杯口 → 倒扣在盐/糖盘中 → 轻轻旋转一圈</div>
+          </div>
+          <div class="bg-ink2 rounded-xl border border-amber/15 p-3">
+            <div class="text-amber font-semibold text-xs mb-1">💡 新手建议</div>
+            <div class="text-xs">1. 先从金汤力、莫吉托开始<br/>2. 冰一定要够多<br/>3. 量具比直觉重要<br/>4. 好的冰和新鲜柑橘能拯救一切</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast"></div>
+</div>
+
+<script>
+/* =========================================================
+   数据
+   ========================================================= */
+const MOODS = [
+  { key:'celebrate', label:'庆祝', color:['#f0c674','#b9893a'], emoji:'🎉', tags:['欢愉','明亮','气泡'],   element:'Au', element_cn:'金' },
+  { key:'relax',     label:'放松', color:['#7be3c8','#2e9e85'], emoji:'🌿', tags:['清爽','草本','凉意'],   element:'Cl', element_cn:'氯' },
+  { key:'social',    label:'社交', color:['#ff9b6a','#d4582e'], emoji:'🍊', tags:['果香','活泼','可爱'],   element:'Cu', element_cn:'铜' },
+  { key:'lonely',    label:'孤独', color:['#5d3df5','#1c1450'], emoji:'🌙', tags:['烟熏','深沉','余韵'],   element:'Pb', element_cn:'铅' },
+  { key:'romantic',  label:'心动', color:['#ff7da6','#a8366f'], emoji:'🌹', tags:['花香','柔软','甜'],     element:'Eu', element_cn:'铕' },
+  { key:'tired',     label:'疲惫', color:['#a479ff','#5d3df5'], emoji:'💜', tags:['醇厚','奶感','温暖'],   element:'Hg', element_cn:'汞' },
+  { key:'experiment',label:'好奇', color:['#cdb4ff','#7a5af8'], emoji:'🔮', tags:['未知','探索','惊喜'],   element:'Xe', element_cn:'氙' },
+  { key:'angry',     label:'烦躁', color:['#ff5e5e','#7a1f1f'], emoji:'🔥', tags:['辛辣','火焰','痛快'],   element:'P',  element_cn:'磷' },
+  { key:'sweet',     label:'甜蜜', color:['#ffd1dc','#ff7da6'], emoji:'🍑', tags:['甜','果香','温柔'],     element:'Sr', element_cn:'锶' },
+];
+
+const FLAVORS = {
+  '金酒':'草本、杜松子、清新干爽 · 搭配汤力水、青柠、黄瓜',
+  '伏特加':'纯净、近乎中性 · 调酒师最爱的画布',
+  '威士忌':'谷物、橡木、烟熏、蜂蜜',
+  '朗姆酒':'甘蔗、香草、热带果香',
+  '龙舌兰':'植物根系、胡椒、咸感',
+  '白兰地':'葡萄、橡木、果脯',
+  '青柠':'锐利酸感、清香 · 调酒师的指挥棒',
+  '柠檬':'圆润酸感、果皮香',
+  '薄荷':'凉感、草本 · Mojito 灵魂',
+  '蜂蜜':'圆润甜、花香',
+  '苏打水':'气泡、轻微矿物 · 让一切活起来',
+  '汤力水':'气泡、奎宁微苦',
+  '糖浆':'纯甜 · 调酒的隐形主角',
+  '蛋清':'丝滑泡沫、无味',
+  '咖啡':'苦香、烘焙',
+  '橙皮':'果皮油脂、清香',
+};
+const PRESETS = [
+  // 基酒类 (12种)
+  '金酒','伏特加','威士忌','朗姆酒','龙舌兰','白兰地','清酒','黄酒','梅酒','百利甜','金巴利','甜味美思',
+  // 辅料类 (15种)
+  '青柠','柠檬','薄荷','蜂蜜','糖浆','蛋清','咖啡','橙皮','苦精','盐','肉桂粉','姜','辣椒','迷迭香','罗勒',
+  // 气泡饮料类 (4种)
+  '苏打水','汤力水','可乐','姜汁汽水',
+  // 果汁类 (12种)
+  '橙汁','西柚汁','菠萝汁','蔓越莓汁','百香果汁','柠檬汁','青柠汁','苹果汁','石榴汁','桃子汁','芒果汁','西瓜汁',
+  // 奶制品类 (4种)
+  '牛奶','椰奶','奶油','酸奶',
+  // 其他常用 (5种)
+  '椰子水','冰红茶','普罗赛克','樱桃','橄榄'
+];
+
+/* 分类→具体选项映射 */
+const CAT_ITEMS = {
+  '基酒':   ['金酒','伏特加','威士忌','朗姆酒','龙舌兰','白兰地','清酒','黄酒','梅酒','百利甜','金巴利','甜味美思'],
+  '利口酒': ['橙皮酒(君度)','咖啡利口酒','樱桃利口酒','杏仁利口酒','椰子利口酒','薄荷利口酒','百利甜','金巴利','阿佩罗'],
+  '辅料':   ['青柠','柠檬','薄荷','蜂蜜','糖浆','蛋清','咖啡','橙皮','苦精','盐','肉桂粉','巧克力酱','奶油'],
+  '饮料':   ['苏打水','汤力水','可乐','姜汁汽水','椰子水','牛奶','椰奶','酸奶','冰红茶','普罗赛克'],
+  '水果':   ['橙子','西柚','百香果','草莓','蓝莓','覆盆子','桃子','芒果','菠萝','西瓜','荔枝','黄瓜','苹果','樱桃','蔓越莓'],
+};
+
+const CLASSICS = [
+  { name:'Negroni', cn:'尼格罗尼', base:'金酒', diff:'易', abv:24, flavor:['苦','草本','复杂'],
+    story:'1919 年佛罗伦萨伯爵 Camillo Negroni 把美式咖啡里的苏打换成了金酒。',
+    recipe:[['金酒','30ml'],['金巴利','30ml'],['甜味美思','30ml'],['橙皮','一片']] },
+  { name:'Mojito', cn:'莫吉托', base:'朗姆酒', diff:'易', abv:13, flavor:['清爽','草本','酸甜'],
+    story:'海明威的标志：「我的莫吉托在 La Bodeguita。」',
+    recipe:[['白朗姆','45ml'],['青柠','半个'],['薄荷','8 片'],['糖浆','15ml'],['苏打水','补满']] },
+  { name:'Old Fashioned', cn:'古典', base:'威士忌', diff:'易', abv:32, flavor:['醇厚','烟熏','甜'],
+    story:'19 世纪初的最初鸡尾酒定义。',
+    recipe:[['波本威士忌','60ml'],['方糖','1 颗'],['苦精','2 dash'],['橙皮','一片']] },
+  { name:'Margarita', cn:'玛格丽特', base:'龙舌兰', diff:'易', abv:18, flavor:['酸甜','清爽','咸'],
+    story:'1948 年墨西哥酒商献给已故女友的酒。',
+    recipe:[['龙舌兰','45ml'],['橙皮酒','15ml'],['青柠','一个']] },
+  { name:'Cosmopolitan', cn:'大都会', base:'伏特加', diff:'中', abv:20, flavor:['果香','酸甜','粉色'],
+    story:'《欲望都市》女主们的标志。',
+    recipe:[['伏特加','45ml'],['橙皮酒','15ml'],['蔓越莓汁','30ml'],['青柠','半个']] },
+  { name:'Whiskey Sour', cn:'威士忌酸酒', base:'威士忌', diff:'中', abv:20, flavor:['酸甜','丝滑'],
+    story:'19 世纪水手用柑橘对抗坏血病的发明。',
+    recipe:[['波本威士忌','45ml'],['柠檬汁','25ml'],['糖浆','15ml'],['蛋清','一个']] },
+  { name:'Espresso Martini', cn:'浓缩马丁尼', base:'伏特加', diff:'中', abv:20, flavor:['咖啡','奶感'],
+    story:'80 年代伦敦：「请帮我醒醒，再灌醉我。」',
+    recipe:[['伏特加','45ml'],['咖啡酒','15ml'],['浓缩咖啡','一杯'],['糖浆','10ml']] },
+  { name:'Aperol Spritz', cn:'阿佩罗气泡', base:'利口酒', diff:'易', abv:11, flavor:['橘香','气泡'],
+    story:'威尼斯人的午后阳光。',
+    recipe:[['阿佩罗','60ml'],['普罗赛克','90ml'],['苏打水','少许'],['橙片','一片']] },
+  { name:'Gin Tonic', cn:'金汤力', base:'金酒', diff:'易', abv:12, flavor:['草本','气泡','清爽'],
+    story:'印度殖民军用汤力水抗疟，加金酒解苦。',
+    recipe:[['金酒','45ml'],['汤力水','补满'],['青柠','一片']] },
+  { name:'Daiquiri', cn:'得其利', base:'朗姆酒', diff:'易', abv:20, flavor:['酸甜','清爽','柑橘'],
+    story:'古巴矿工在炎热午后发明的解暑之选，后来肯尼迪也迷上了它。',
+    recipe:[['白朗姆','60ml'],['青柠汁','20ml'],['糖浆','15ml']] },
+  { name:'Manhattan', cn:'曼哈顿', base:'威士忌', diff:'中', abv:30, flavor:['醇厚','辛辣','果香'],
+    story:'1870 年代曼哈顿俱乐部的传奇——优雅、浓烈、不妥协。',
+    recipe:[['黑麦威士忌','60ml'],['甜味美思','30ml'],['苦精','2 dash'],['樱桃','一颗']] },
+  { name:'Piña Colada', cn:'椰林飘香', base:'朗姆酒', diff:'易', abv:13, flavor:['热带','椰香','甜'],
+    story:'1954 年波多黎各调酒师的热带幻梦，已成为夏天的代名词。',
+    recipe:[['白朗姆','45ml'],['椰奶','60ml'],['菠萝汁','90ml'],['冰块','适量']] },
+  { name:'Moscow Mule', cn:'莫斯科骡子', base:'伏特加', diff:'易', abv:11, flavor:['辛辣','清爽','姜味'],
+    story:'1940 年代纽约商人为了卖出积压的伏特加和姜汁汽水而灵机一动。',
+    recipe:[['伏特加','45ml'],['姜汁汽水','120ml'],['青柠','半个']] },
+  { name:'Mai Tai', cn:'迈泰', base:'朗姆酒', diff:'中', abv:22, flavor:['热带','果香','杏仁'],
+    story:'1944 年奥克兰 Trader Vic 的杰作，一位塔希提朋友尝后惊呼"Mai Tai!"（太好了！）',
+    recipe:[['陈年朗姆','30ml'],['白朗姆','30ml'],['橙皮酒','15ml'],['杏仁糖浆','15ml'],['青柠汁','15ml']] },
+  { name:'Gimlet', cn:'螺丝锥子', base:'金酒', diff:'易', abv:26, flavor:['酸甜','清爽','简约'],
+    story:'英国皇家海军用酸橙汁防坏血病，加金酒让它变成了绅士饮品。',
+    recipe:[['金酒','60ml'],['青柠汁','20ml'],['糖浆','10ml']] },
+  { name:'Paloma', cn:'帕洛玛', base:'龙舌兰', diff:'易', abv:12, flavor:['西柚','清爽','气泡'],
+    story:'墨西哥人真正的日常之选，比玛格丽特更随性自在。',
+    recipe:[['龙舌兰','45ml'],['西柚汽水','120ml'],['青柠','一片'],['盐','杯口']] },
+  { name:'Sidecar', cn:'边车', base:'白兰地', diff:'中', abv:25, flavor:['柑橘','醇厚','优雅'],
+    story:'一战后巴黎丽兹酒店——据说一位常客总坐摩托车边车来。',
+    recipe:[['白兰地','45ml'],['橙皮酒','20ml'],['柠檬汁','20ml']] },
+  { name:'Boulevardier', cn:'花花公子', base:'威士忌', diff:'易', abv:25, flavor:['苦甜','温暖','复杂'],
+    story:'用波本替代金酒的尼格罗尼，巴黎旅居美国人 Erskine Gwynne 的发明。',
+    recipe:[['波本威士忌','45ml'],['金巴利','30ml'],['甜味美思','30ml'],['橙皮','一片']] },
+];
+
+/* 模糊度量映射 */
+const FUZZY = {
+  '5ml':'半个瓶盖',
+  '10ml':'一个瓶盖',
+  '15ml':'一汤匙',
+  '20ml':'一指厚',
+  '25ml':'一汤匙多一点',
+  '30ml':'两个瓶盖',
+  '45ml':'三个瓶盖',
+  '60ml':'四个瓶盖',
+  '90ml':'半杯（150ml 杯）',
+};
+function fuzzy(v){
+  // "45ml"、"15ml（约一汤匙）"
+  return v.replace(/(\d+)\s*ml/g, (m, n)=>{
+    const k = n+'ml';
+    if(FUZZY[k]) return FUZZY[k];
+    const num = parseInt(n);
+    if(num<=8) return '半个瓶盖';
+    if(num<=12) return '一个瓶盖';
+    if(num<=18) return '一汤匙';
+    if(num<=22) return '一指厚';
+    if(num<=35) return '两个瓶盖';
+    if(num<=50) return '三个瓶盖';
+    if(num<=70) return '四个瓶盖';
+    return Math.round(num/30)+' 个瓶盖';
+  }).replace(/补满至杯口（约一指宽留白）/, '倒到杯口留一指空');
+}
+
+/* =========================================================
+   状态
+   ========================================================= */
+const LS = { cabinet:'ta_cabinet', bar:'ta_bar' };
+const load = (k, fb) => { try { return JSON.parse(localStorage.getItem(k)) ?? fb; } catch { return fb; } };
+const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+
+let state = {
+  cabinet: load(LS.cabinet, []),
+  bar:     load(LS.bar, []),
+  selectedMoods: [],
+  cleanMode: false,
+  fuzzyMode: false,
+  lastResult: null,
+  libFilter: '全部',
+};
+
+/* =========================================================
+   工具
+   ========================================================= */
+let toastTimer;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.style.opacity='1';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> el.style.opacity='0', 1800);
+}
+function showModal(html){
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modal').classList.remove('hidden');
+}
+function hideModal(){ document.getElementById('modal').classList.add('hidden'); }
+document.getElementById('modalClose').addEventListener('click', hideModal);
+document.getElementById('modal').addEventListener('click', e=>{
+  if(e.target.classList.contains('modal-mask')) hideModal();
+});
+
+/* 状态栏时间 */
+function tickTime(){
+  const d = new Date();
+  document.getElementById('stTime').textContent =
+    String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+tickTime(); setInterval(tickTime, 30000);
+
+/* =========================================================
+   Tab 切换
+   ========================================================= */
+const TAB_TITLE = { brew:'炼金台', cabinet:'酒柜', bar:'小酒馆', lib:'配方' };
+function go(name){
+  document.querySelectorAll('.tab').forEach(t=>{
+    if(t.classList.contains('center')) return;
+    t.classList.toggle('active', t.dataset.tab === name);
+  });
+  ['brew','cabinet','bar','lib'].forEach(k=>{
+    document.getElementById('page'+k.charAt(0).toUpperCase()+k.slice(1)).classList.toggle('hidden', k!==name);
+  });
+  document.getElementById('navTitle').textContent = TAB_TITLE[name];
+  document.getElementById('scroll').scrollTo({top:0});
+  if(name==='cabinet') renderCabinet();
+  if(name==='bar')     renderBar();
+  if(name==='lib')     renderLib();
+  if(name==='brew')    setTimeout(resizeCanvas, 50);
+}
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click', ()=> go(t.dataset.tab));
+});
+
+/* =========================================================
+   调酒科普
+   ========================================================= */
+document.getElementById('knowledgeBtn').addEventListener('click', ()=>{
+  document.getElementById('knowledgeModal').classList.remove('hidden');
+});
+document.getElementById('knowledgeClose').addEventListener('click', ()=>{
+  document.getElementById('knowledgeModal').classList.add('hidden');
+});
+
+/* =========================================================
+   1) 炼金台 · 物理气泡舞台（Canvas）
+   ========================================================= */
+const canvas = document.getElementById('stageCanvas');
+const ctx = canvas.getContext('2d');
+let stageW = 0, stageH = 0, dpr = window.devicePixelRatio || 1;
+let bottle = { x:0, y:0, rx:40, ry:50 }; // 鸡尾酒杯碰撞区
+let bubbles = [];
+
+function resizeCanvas(){
+  const wrap = canvas.parentElement;
+  stageW = wrap.clientWidth;
+  stageH = wrap.clientHeight;
+  canvas.width  = stageW * dpr;
+  canvas.height = stageH * dpr;
+  canvas.style.width  = stageW + 'px';
+  canvas.style.height = stageH + 'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  bottle.x = stageW / 2;
+  bottle.y = stageH / 2 + 10;
+  bottle.rx = 52;
+  bottle.ry = 66;
+  // 重新散布气泡
+  if(!bubbles.length) initBubbles();
+}
+function initBubbles(){
+  bubbles = MOODS.map((m, i)=>{
+    const ang = (i / MOODS.length) * Math.PI * 2;
+    const r = 130;
+    return {
+      m, key:m.key,
+      x: bottle.x + Math.cos(ang)*r + (Math.random()*12-6),
+      y: bottle.y + Math.sin(ang)*r + (Math.random()*12-6),
+      vx: (Math.random()-.5)*0.4,
+      vy: (Math.random()-.5)*0.4,
+      r: 24,
+      drag:false,
+    };
+  });
+}
+
+/* 炼金特效粒子 */
+let sparkles = [];
+let isBrewingAnim = false;
+
+function drawBottle(){
+  const cx = bottle.x, cy = bottle.y;
+  /* ----- 鸡尾酒马提尼杯 (放大版) ----- */
+  // 杯脚
+  ctx.strokeStyle = 'rgba(212,162,76,.5)';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.moveTo(cx - 18, cy + 64);
+  ctx.lineTo(cx + 18, cy + 64);
+  ctx.stroke();
+  // 杯柄
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + 22);
+  ctx.lineTo(cx, cy + 64);
+  ctx.stroke();
+  // 杯身 V 形
+  ctx.beginPath();
+  ctx.moveTo(cx - 50, cy - 34);
+  ctx.lineTo(cx, cy + 22);
+  ctx.lineTo(cx + 50, cy - 34);
+  ctx.closePath();
+  // 杯身填充 — 透明玻璃质感
+  const glassG = ctx.createLinearGradient(cx - 50, cy - 34, cx + 50, cy - 34);
+  glassG.addColorStop(0, 'rgba(255,255,255,.06)');
+  glassG.addColorStop(.3, 'rgba(255,255,255,.12)');
+  glassG.addColorStop(.7, 'rgba(255,255,255,.08)');
+  glassG.addColorStop(1, 'rgba(255,255,255,.04)');
+  ctx.fillStyle = glassG;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(212,162,76,.45)';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+
+  // === 杯内液体（按已选情绪分层） ===
+  const moods = state.selectedMoods.map(k=>MOODS.find(m=>m.key===k));
+  const list = moods.length ? moods.slice(0,3) : [];
+  if(list.length){
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(cx - 50, cy - 34);
+    ctx.lineTo(cx, cy + 22);
+    ctx.lineTo(cx + 50, cy - 34);
+    ctx.closePath();
+    ctx.clip();
+    const totalH = 56;
+    const segH = totalH / list.length;
+    list.forEach((m, i)=>{
+      const top = cy + 22 - (list.length - i) * segH;
+      const g = ctx.createLinearGradient(0, top, 0, top + segH + 3);
+      g.addColorStop(0, m.color[0] + 'dd');
+      g.addColorStop(1, m.color[1] + 'bb');
+      ctx.fillStyle = g;
+      ctx.fillRect(cx - 56, top, 112, segH + 3);
+    });
+    const liquidTop = cy + 22 - list.length * segH;
+    ctx.fillStyle = 'rgba(255,255,255,.2)';
+    ctx.beginPath();
+    ctx.ellipse(cx, liquidTop + 2, 30, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // 杯口高光
+  ctx.strokeStyle = 'rgba(255,255,255,.3)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(cx - 50, cy - 34);
+  ctx.lineTo(cx + 50, cy - 34);
+  ctx.stroke();
+
+  // 左侧玻璃反光
+  ctx.strokeStyle = 'rgba(255,255,255,.15)';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(cx - 42, cy - 30);
+  ctx.lineTo(cx - 6, cy + 15);
+  ctx.stroke();
+
+  // === 炼金闪光粒子 ===
+  if(isBrewingAnim){
+    // 生成新粒子
+    for(let i=0; i<3; i++){
+      sparkles.push({
+        x: cx + (Math.random() - .5) * 80,
+        y: cy - 24 + Math.random() * 50,
+        vx: (Math.random() - .5) * 2,
+        vy: -Math.random() * 2.5 - 0.5,
+        life: 1,
+        size: Math.random() * 3 + 1.5,
+        hue: Math.random() > 0.5 ? 45 : 280, // 金色或紫色
+      });
+    }
+  }
+  // 绘制并更新粒子
+  for(let i = sparkles.length - 1; i >= 0; i--){
+    const s = sparkles[i];
+    s.x += s.vx; s.y += s.vy;
+    s.life -= 0.02;
+    if(s.life <= 0){ sparkles.splice(i, 1); continue; }
+    ctx.save();
+    ctx.globalAlpha = s.life * 0.9;
+    // 星芒
+    const a = s.life * 0.8;
+    ctx.fillStyle = s.hue === 45 ? `rgba(240,198,116,${a})` : `rgba(180,160,255,${a})`;
+    ctx.shadowColor = s.hue === 45 ? '#f0c674' : '#a479ff';
+    ctx.shadowBlur = 6;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.size * s.life, 0, Math.PI * 2);
+    ctx.fill();
+    // 十字星芒
+    if(s.size > 2){
+      ctx.strokeStyle = ctx.fillStyle;
+      ctx.lineWidth = 0.5;
+      const len = s.size * s.life * 1.8;
+      ctx.beginPath();
+      ctx.moveTo(s.x - len, s.y); ctx.lineTo(s.x + len, s.y);
+      ctx.moveTo(s.x, s.y - len); ctx.lineTo(s.x, s.y + len);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
+
+function drawBubble(b){
+  const sel = state.selectedMoods.includes(b.key);
+  const g = ctx.createRadialGradient(b.x-6, b.y-8, 2, b.x, b.y, b.r);
+  if(sel){
+    g.addColorStop(0, 'rgba(255,255,255,.7)');
+    g.addColorStop(.4, 'rgba(255,255,255,.25)');
+    g.addColorStop(.8, 'rgba(255,255,255,.12)');
+    g.addColorStop(1,  'rgba(255,255,255,.06)');
+  } else {
+    g.addColorStop(0, 'rgba(255,255,255,.5)');
+    g.addColorStop(.4, 'rgba(255,255,255,.18)');
+    g.addColorStop(.8, 'rgba(255,255,255,.08)');
+    g.addColorStop(1,  'rgba(255,255,255,.03)');
+  }
+  // 阴影
+  ctx.save();
+  ctx.shadowColor = sel ? 'rgba(255,255,255,.6)' : 'rgba(255,255,255,.2)';
+  ctx.shadowBlur = sel ? 16 : 6;
+  ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+  ctx.fillStyle = g; ctx.fill();
+  ctx.restore();
+  // 描边 — 模拟真实气泡的透明边缘
+  ctx.lineWidth = sel ? 1.5 : 0.8;
+  ctx.strokeStyle = sel ? 'rgba(255,255,255,.7)' : 'rgba(255,255,255,.35)';
+  ctx.stroke();
+  // 小高光（左上角光斑）
+  ctx.beginPath();
+  ctx.arc(b.x - b.r*0.3, b.y - b.r*0.35, b.r*0.18, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(255,255,255,.65)';
+  ctx.fill();
+  // 第二个高光（右下小光点）
+  ctx.beginPath();
+  ctx.arc(b.x + b.r*0.2, b.y + b.r*0.25, b.r*0.08, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(255,255,255,.35)';
+  ctx.fill();
+  // 文字（仅标签，不加emoji）
+  ctx.fillStyle = sel ? '#fff' : 'rgba(255,255,255,.9)';
+  ctx.font = 'bold 11px "Noto Serif SC"';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(b.m.label, b.x, b.y);
+}
+
+/* 物理 step */
+function physics(){
+  const topMargin = 30; // 不让气泡遮挡顶部文字
+  for(const b of bubbles){
+    if(b.drag) continue;
+    // 漂浮（轻微左右扰动，不给向上浮力）
+    b.vx += (Math.random()-.5)*0.04;
+    b.vy += (Math.random()-.5)*0.04;
+    // 阻尼
+    b.vx *= 0.985; b.vy *= 0.985;
+    // 限速
+    const sp = Math.hypot(b.vx, b.vy);
+    if(sp > 1.4){ b.vx *= 1.4/sp; b.vy *= 1.4/sp; }
+    b.x += b.vx; b.y += b.vy;
+    // 边界反弹 — 顶部留出 topMargin 空间
+    if(b.x < b.r){ b.x = b.r; b.vx *= -0.7; }
+    if(b.x > stageW-b.r){ b.x = stageW-b.r; b.vx *= -0.7; }
+    if(b.y < topMargin + b.r){ b.y = topMargin + b.r; b.vy *= -0.7; }
+    if(b.y > stageH-b.r){ b.y = stageH-b.r; b.vy *= -0.7; }
+    // 与瓶子椭圆碰撞（近似为膨胀椭圆 + 半径）
+    const dx = (b.x - bottle.x) / (bottle.rx + b.r);
+    const dy = (b.y - bottle.y) / (bottle.ry + b.r);
+    const d2 = dx*dx + dy*dy;
+    if(d2 < 1){
+      // 把气泡推出椭圆边界
+      const k = 1 / Math.sqrt(d2);
+      const tx = bottle.x + (b.x-bottle.x) * k;
+      const ty = bottle.y + (b.y-bottle.y) * k;
+      b.x = tx; b.y = ty;
+      // 反弹：以法线方向
+      const nx = (b.x-bottle.x) / (bottle.rx + b.r);
+      const ny = (b.y-bottle.y) / (bottle.ry + b.r);
+      const nl = Math.hypot(nx,ny) || 1;
+      const nxn = nx/nl, nyn = ny/nl;
+      const dot = b.vx*nxn + b.vy*nyn;
+      b.vx -= 2*dot*nxn * 0.85;
+      b.vy -= 2*dot*nyn * 0.85;
+    }
+  }
+  // 气泡互撞
+  for(let i=0;i<bubbles.length;i++){
+    for(let j=i+1;j<bubbles.length;j++){
+      const a = bubbles[i], c = bubbles[j];
+      const dxx = c.x-a.x, dyy = c.y-a.y;
+      const dist = Math.hypot(dxx,dyy);
+      const minD = a.r + c.r;
+      if(dist < minD && dist > 0){
+        const nx = dxx/dist, ny = dyy/dist;
+        const overlap = (minD - dist) / 2;
+        if(!a.drag){ a.x -= nx*overlap; a.y -= ny*overlap; }
+        if(!c.drag){ c.x += nx*overlap; c.y += ny*overlap; }
+        // 简易弹性碰撞
+        const dvx = c.vx - a.vx, dvy = c.vy - a.vy;
+        const vn = dvx*nx + dvy*ny;
+        if(vn < 0){
+          const imp = -vn * 0.9;
+          if(!a.drag){ a.vx -= imp*nx; a.vy -= imp*ny; }
+          if(!c.drag){ c.vx += imp*nx; c.vy += imp*ny; }
+        }
+      }
+    }
+  }
+}
+
+function frame(){
+  ctx.clearRect(0,0,stageW,stageH);
+  // 微粒背景
+  drawBottle();
+  physics();
+  for(const b of bubbles) drawBubble(b);
+  requestAnimationFrame(frame);
+}
+
+/* 拖拽 + 点击切换情绪 */
+let dragB = null, downAt = 0, downPos = null;
+function pickBubble(x, y){
+  for(let i=bubbles.length-1;i>=0;i--){
+    const b = bubbles[i];
+    if(Math.hypot(b.x-x, b.y-y) < b.r) return b;
+  }
+  return null;
+}
+function evtPos(e){
+  const r = canvas.getBoundingClientRect();
+  const t = e.touches ? e.touches[0] : e;
+  return { x: t.clientX - r.left, y: t.clientY - r.top };
+}
+canvas.addEventListener('pointerdown', (e)=>{
+  const p = evtPos(e); const b = pickBubble(p.x, p.y);
+  if(b){ dragB = b; b.drag = true; b.vx=0; b.vy=0;
+    downAt = Date.now(); downPos = { x:p.x, y:p.y };
+    canvas.setPointerCapture(e.pointerId);
+  }
+});
+canvas.addEventListener('pointermove', (e)=>{
+  if(!dragB) return;
+  const p = evtPos(e); dragB.x = p.x; dragB.y = p.y;
+});
+canvas.addEventListener('pointerup', (e)=>{
+  if(!dragB) return;
+  const p = evtPos(e);
+  const moved = downPos ? Math.hypot(p.x-downPos.x, p.y-downPos.y) : 0;
+  // 给一点惯性
+  if(moved > 4){ dragB.vx = (Math.random()-.5)*1.2; dragB.vy = (Math.random()-.5)*1.2; }
+  // 短按 = 切换选择
+  if(Date.now()-downAt < 250 && moved < 6){
+    toggleMood(dragB.key);
+  }
+  dragB.drag = false;
+  dragB = null;
+});
+
+function toggleMood(key){
+  const i = state.selectedMoods.indexOf(key);
+  if(i>=0) state.selectedMoods.splice(i,1);
+  else if(state.selectedMoods.length < 3) state.selectedMoods.push(key);
+  else { toast('最多混 3 种情绪'); return; }
+  renderSelectedStrip();
+}
+function renderSelectedStrip(){
+  const strip = document.getElementById('selectedStrip');
+  if(!state.selectedMoods.length){
+    strip.innerHTML = `<span class="text-mute text-xs">点击气泡选情绪 · 可叠加</span>`;
+    return;
+  }
+  strip.innerHTML = state.selectedMoods.map(k=>{
+    const m = MOODS.find(x=>x.key===k);
+    return `<span class="tag-mood">${m.emoji} ${m.label}<button onclick="toggleMood('${k}')">×</button></span>`;
+  }).join('');
+}
+window.toggleMood = toggleMood;
+
+window.addEventListener('resize', resizeCanvas);
+
+/* =========================================================
+   1) 炼金台 · 模式切换 / 语音 / 炼制
+   ========================================================= */
+document.getElementById('modeBtn').addEventListener('click', ()=>{
+  state.cleanMode = !state.cleanMode;
+  document.getElementById('modeBtn').textContent = state.cleanMode ? '✨' : '🌙';
+  toast(state.cleanMode ? '已切到干净微醺模式' : '已切回正常模式');
+});
+document.getElementById('fuzzyMode').addEventListener('change', e=>{
+  state.fuzzyMode = e.target.checked;
+  if(state.lastResult) renderResult(state.lastResult);
+});
+
+let recognizer = null, recognizing = false;
+const micBtn = document.getElementById('micBtn');
+micBtn.addEventListener('click', ()=>{
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){
+    toast('浏览器不支持语音，请用 Safari 或 Chrome 打开');
+    return;
+  }
+  if(location.protocol !== 'https:' && location.hostname !== 'localhost'){
+    toast('语音需要 HTTPS 环境，请用文字输入');
+    return;
+  }
+  if(recognizing){ recognizer && recognizer.stop(); return; }
+  recognizer = new SR();
+  recognizer.lang = 'zh-CN'; recognizer.interimResults = true; recognizer.continuous = false;
+  recognizer.onstart = ()=>{ recognizing=true; micBtn.textContent='⏺'; micBtn.classList.add('active'); toast('正在听…'); };
+  let finalText = '';
+  recognizer.onresult = ev=>{
+    let interim=''; for(let i=ev.resultIndex;i<ev.results.length;i++){
+      if(ev.results[i].isFinal) finalText+=ev.results[i][0].transcript;
+      else interim += ev.results[i][0].transcript;
+    }
+    document.getElementById('moodInput').value = (finalText+interim).trim();
+  };
+  recognizer.onerror = ev=>{
+    const errMap = {
+      'not-allowed': '请允许麦克风权限',
+      'no-speech': '没有检测到语音，再试一次',
+      'network': '网络错误，请检查连接',
+      'aborted': '语音已取消',
+    };
+    toast(errMap[ev.error] || '语音失败：'+ev.error);
+  };
+  recognizer.onend = ()=>{ recognizing=false; micBtn.textContent='🎙'; micBtn.classList.remove('active'); };
+  try{ recognizer.start(); }catch(e){ toast('启动语音失败，请用文字输入'); }
+});
+
+document.getElementById('brewBtn').addEventListener('click', ()=> brew());
+document.getElementById('reBrewBtn').addEventListener('click', ()=> brew(true));
+document.getElementById('randomBtn').addEventListener('click', ()=>{
+  state.selectedMoods = [];
+  const n = 1 + Math.floor(Math.random()*3);
+  [...MOODS].sort(()=>Math.random()-.5).slice(0,n).forEach(m=> state.selectedMoods.push(m.key));
+  renderSelectedStrip();
+  document.getElementById('moodInput').value='';
+  brew();
+});
+
+function brew(again=false){
+  const text = document.getElementById('moodInput').value.trim();
+  if(!state.selectedMoods.length && !text){
+    toast('先点情绪气泡，或写两句心情'); return;
+  }
+  toast('炼制中…');
+  // 启动炼金粒子特效
+  isBrewingAnim = true;
+  sparkles = [];
+  const stage = document.querySelector('.stage-wrap');
+  stage.animate([{filter:'brightness(1)'},{filter:'brightness(1.8) saturate(1.5)'},{filter:'brightness(1.1)'},{filter:'brightness(1)'}], {duration:1200});
+  setTimeout(()=>{
+    isBrewingAnim = false;
+  }, 1200);
+  setTimeout(()=>{
+    const r = generateRecipe(text, again);
+    state.lastResult = r;
+    renderResult(r);
+    document.getElementById('resultWrap').classList.remove('hidden');
+    document.getElementById('resultWrap').scrollIntoView({behavior:'smooth', block:'start'});
+  }, 1000);
+}
+
+/* === 配方生成（升级酒名 + 故事）=== */
+function generateRecipe(text, again){
+  const moods = state.selectedMoods.length
+    ? state.selectedMoods.map(k=>MOODS.find(m=>m.key===k))
+    : [MOODS[Math.floor(Math.random()*MOODS.length)]];
+
+  const cab = state.cabinet.map(x=>x.name);
+  const has = (n) => cab.includes(n);
+
+  const base = state.cleanMode
+    ? (['伏特加','金酒','龙舌兰'].find(has) || '伏特加')
+    : (['金酒','朗姆酒','威士忌','龙舌兰','伏特加','白兰地'].find(has) || '金酒');
+  const sour  = has('青柠') ? '青柠' : '柠檬';
+  const sweetPool = state.cleanMode ? ['蜂蜜'] : ['糖浆','蜂蜜'];
+  const sweet = sweetPool.find(has) || sweetPool[0];
+  const fizz  = has('苏打水') ? '苏打水' : (has('汤力水') ? '汤力水' : '苏打水');
+  const herb  = has('薄荷') ? '薄荷' : (has('橙皮') ? '橙皮' : null);
+
+  const recipe = [[base,'45ml'], [sour,'15ml'],
+                  [sweet, state.cleanMode ? '5ml' : '15ml']];
+  if(herb) recipe.push([herb, herb==='薄荷' ? '6 片' : '一片']);
+  recipe.push([fizz, '补满至杯口（约一指宽留白）']);
+
+  const alt = [];
+  if(!has(base)) alt.push(`没有「${base}」？可以用伏特加替代，更清爽。`);
+  if(!has(fizz)) alt.push('没有气泡水？冰水 + 一片柠檬也可。');
+
+  /* 酒名 + 故事：强关联用户输入文字和情绪 */
+  const moodKey = moods[0].key;
+  const moodLabel = moods[0].label;
+
+  /*
+   * 酒名选择逻辑：
+   * 1. 分析用户输入文字的情感色调（正/负/温暖/冷/强烈/轻柔）
+   * 2. 根据情绪 + 色调组合，从大量诗意酒名中挑选意境最匹配的
+   * 3. 绝不直接引用用户原文
+   */
+
+  /* 情感色调分析 */
+  function detectTone(t){
+    if(!t) return 'neutral';
+    const warm   = /开心|快乐|幸福|美好|温暖|阳光|期待|希望|喜欢|爱|甜|笑|拥抱|陪伴|浪漫|心动|想你|见面|约会|牵手/;
+    const cold   = /失眠|孤独|难过|伤心|分手|离开|告别|遗憾|思念|想念|怀念|远方|冷|雨|夜|深夜|凌晨|一个人/;
+    const fierce = /愤怒|生气|烦|讨厌|不爽|崩溃|爆炸|受够|操|妈的|加班|累死|996|压力|焦虑|抓狂/;
+    const light  = /放假|周末|摸鱼|休息|躺|慵懒|悠闲|散步|咖啡|午后|微风|云|猫|音乐|书|电影/;
+    const thrill = /惊喜|意外|第一次|新|尝试|冒险|挑战|好奇|旅行|探索|未知|不一样|刺激/;
+    if(fierce.test(t)) return 'fierce';
+    if(cold.test(t))   return 'cold';
+    if(warm.test(t))   return 'warm';
+    if(thrill.test(t)) return 'thrill';
+    if(light.test(t))  return 'light';
+    return 'neutral';
+  }
+  const tone = detectTone(text);
+
+  /* 从用户输入里提炼"主题词"（2-4字短语，作为故事核心指向） */
+  function extractTopic(t){
+    if(!t) return '这件事';
+    /* 优先匹配高频生活场景关键词 - 大幅扩充版 */
+    const KEY = [
+      // 工作类
+      '加班','下班','上班','开会','项目','汇报','面试','offer','跳槽','离职','升职','奖金','工资','年终奖','裁员','辞职','入职','转正','实习','加薪',
+      // 学业类
+      '考试','毕业','论文','答辩','保研','考研','考公','作业','补考','挂科','奖学金','答辩','开题','查重',
+      // 作息类  
+      '失眠','熬夜','凌晨','深夜','早起','迟到','睡不着','醒了','睡着','起床',
+      // 情感类（大幅扩充）
+      '分手','复合','表白','约会','见面','告白','结婚','恋爱','暗恋','单身','前任','喜欢','心动','暗恋','牵手','拥抱','亲吻','想你','等你','遇见','心动对象','告白','求婚','订婚','情人节','纪念日','初恋','热恋','相亲','脱单',
+      // 节日类
+      '生日','纪念日','节日','春节','圣诞','情人节','元旦','中秋','国庆','端午','七夕','跨年','过年',
+      // 出行类
+      '搬家','旅行','机票','高铁','回家','离家','出差','出国','签证','飞机','火车','自驾','露营',
+      // 健康类
+      '生病','感冒','发烧','吵架','和好','争吵','误会','生气','委屈','难过','开心','焦虑','抑郁','累','困','疼','住院','康复',
+      // 运动类
+      '减肥','健身','跑步','瑜伽','健身房','运动','爬山','游泳','骑行','球赛',
+      // 宠物类
+      '猫','狗','宠物','猫咪','狗狗','铲屎','遛狗',
+      // 人物类
+      '父母','家人','妈妈','爸爸','朋友','室友','同事','老板','同学','闺蜜','兄弟','姐妹','爷爷','奶奶','外公','外婆',
+      // 美食类
+      '咖啡','奶茶','外卖','火锅','烧烤','宵夜','甜品','蛋糕','火锅','串串','麻辣烫',
+      // 娱乐类
+      '电影','演唱会','展览','音乐节','live','音乐会','话剧','脱口秀','综艺','追剧',
+      // 天气类
+      '雨','雪','晴天','春天','夏天','秋天','冬天','下雨','下雪','阴天','台风',
+      // 财务类
+      '股票','基金','房子','车','钱','穷','破产','暴富','中奖','理财','存钱','花钱','省钱',
+      // 情绪类
+      '梦','回忆','秘密','想念','思念','遗憾','怀念','孤独','寂寞','落单','独处','想家','乡愁'
+    ];
+    for(const k of KEY){ if(t.includes(k)) return k; }
+    /* 提炼 2-4 字关键短语：去掉标点和虚词后取首段 */
+    const cleaned = t.replace(/[，。！？、…\.,\!\?\s\n\r"'""''：；:;~～\-—_]/g, ' ').trim();
+    if(!cleaned) return '这件事';
+    /* 去掉常见虚词开头 */
+    const STOP = ['今天','昨天','明天','现在','刚刚','刚才','最近','一直','其实','感觉','觉得','突然','可能','也许','应该','就是','所以','但是','不过','然后','而且','还有','只是'];
+    let s = cleaned;
+    for(const w of STOP){ if(s.startsWith(w)) s = s.slice(w.length).trim(); }
+    /* 取前 4 个有意义字符 */
+    const m = s.match(/[一-龥a-zA-Z0-9]{2,4}/);
+    return m ? m[0] : '这件事';
+  }
+  /* 提炼一段"情境碎片"——保留原文里 4-8 字的画面感片段 */
+  function extractFragment(t){
+    if(!t) return '此刻';
+    const segs = t.split(/[，。！？、…\.,\!\?\n\r;；]/).map(s=>s.trim()).filter(s=>s.length>=2 && s.length<=10);
+    if(segs.length){
+      /* 取最短但有内容的一段，避免太长 */
+      const pick = segs.sort((a,b)=>a.length-b.length).find(s=>s.length>=3) || segs[0];
+      return pick.length > 8 ? pick.slice(0, 8) : pick;
+    }
+    return t.slice(0, 6);
+  }
+
+  /* 每个情绪 × 色调的扩展酒名池 */
+  const NAMES = {
+    celebrate: {
+      warm:   [{cn:'月光下的碰杯声', en:'Moonlit Cheers'},{cn:'第七颗星星亮了', en:'The Seventh Star Shines'},{cn:'裙摆旋转的频率', en:'The Frequency of Spinning Skirts'}],
+      cold:   [{cn:'独自庆祝也很酷', en:'A Private Celebration'},{cn:'黑夜里的金色', en:'Gold in Darkness'},{cn:'无人知晓的胜利', en:'An Unknown Victory'}],
+      fierce: [{cn:'今夜我最大', en:'Tonight I Reign'},{cn:'把天花板掀了', en:'Blow the Roof Off'},{cn:'从不认输的人', en:'The One Who Never Surrenders'}],
+      light:  [{cn:'好消息的形状', en:'The Shape of Good News'},{cn:'值得一杯的星期四', en:'A Thursday Worth Toasting'},{cn:'刚好经过的快乐', en:'Happiness Passing By'}],
+      thrill: [{cn:'烟花坠入杯底', en:'Firework in a Glass'},{cn:'未拆封的礼物', en:'An Unwrapped Gift'},{cn:'惊喜比酒先到', en:'Surprise Arrived Before the Drink'}],
+      neutral:[{cn:'今晚月亮开了香槟', en:'The Moon Popped Champagne'},{cn:'金色气泡在唱歌', en:'Golden Bubbles Singing'},{cn:'时间暂停三秒', en:'Time Paused for Three Seconds'}],
+    },
+    relax: {
+      warm:   [{cn:'被窝里的余温', en:'Warmth Left in the Sheets'},{cn:'猫也趴下了', en:'Even the Cat Lies Down'},{cn:'温柔着陆', en:'A Gentle Landing'}],
+      cold:   [{cn:'关掉屏幕的那一秒', en:'The Second I Closed My Laptop'},{cn:'雨声是最好的白噪音', en:'Rain as White Noise'},{cn:'冰块融化的速度', en:'The Speed of Melting Ice'}],
+      fierce: [{cn:'世界先闭嘴五分钟', en:'World, Shut Up for Five'},{cn:'今天的闹钟欠我一杯', en:'The Alarm Owes Me a Drink'},{cn:'终于轮到我休息', en:'Finally, My Turn to Rest'}],
+      light:  [{cn:'慢一拍的呼吸', en:'One Beat Slower'},{cn:'假装今天很短', en:'Pretend Today Was Short'},{cn:'阳台上的第一口', en:'First Sip on the Balcony'}],
+      thrill: [{cn:'什么都不做的自由', en:'Freedom of Doing Nothing'},{cn:'漫无目的刚刚好', en:'Aimless Is Just Right'},{cn:'今天不赶任何deadline', en:'No Deadline Today'}],
+      neutral:[{cn:'松开领带的瞬间', en:'The Moment the Tie Loosens'},{cn:'沙发凹陷的形状', en:'The Shape My Sofa Holds'},{cn:'一切都可以慢慢来', en:'Everything Can Wait'}],
+    },
+    social: {
+      warm:   [{cn:'门铃和笑声同时响', en:'Doorbell Meets Laughter'},{cn:'碰杯之前的三秒', en:'Three Seconds Before Cheers'},{cn:'朋友的朋友也来了', en:'A Friend of a Friend Showed Up'}],
+      cold:   [{cn:'派对散场后的安静', en:'Silence After the Party'},{cn:'人群里只看见你', en:'Only You in the Crowd'},{cn:'欲言又止的晚安', en:'The Goodnight Left Unsaid'}],
+      fierce: [{cn:'那桌人比我们先醉', en:'They Got Tipsy First'},{cn:'谁先倒谁买单', en:'Last One Standing Pays'},{cn:'嗓门最大的那位', en:'The Loudest One Here'}],
+      light:  [{cn:'下班后的第一通电话', en:'First Call After Work'},{cn:'拼桌也能聊一晚', en:'Strangers Talk All Night'},{cn:'AA制的默契', en:'The Unspoken Split'}],
+      thrill: [{cn:'临时起意的聚会', en:'A Spontaneous Gathering'},{cn:'新朋友的化学反应', en:'Chemistry with New Friends'},{cn:'今晚不回家', en:'Not Going Home Tonight'}],
+      neutral:[{cn:'第三杯才说真话', en:'Truth Comes at Glass Three'},{cn:'杯中的笑声余韵', en:'Laughter Lingering in the Glass'},{cn:'微醺是最好的社交距离', en:'Tipsy Is the Best Social Distance'}],
+    },
+    lonely: {
+      warm:   [{cn:'一个人也要好好喝', en:'Drinking Well, Alone'},{cn:'独处是种温柔', en:'Solitude Is Gentle'},{cn:'自己和自己碰杯', en:'Clinking Glasses with Myself'}],
+      cold:   [{cn:'没发出去的消息', en:'The Unsent Message'},{cn:'深夜两点的第二杯', en:'The Second Glass at 2AM'},{cn:'只有影子陪我碰杯', en:'Cheers With My Shadow'}],
+      fierce: [{cn:'一口闷掉想念', en:'Down the Missing in One'},{cn:'独饮者不需要理由', en:'A Solo Drinker Needs No Reason'},{cn:'把门反锁的夜', en:'The Night I Locked the Door'}],
+      light:  [{cn:'独饮者的蓝调', en:"A Loner's Blue Note"},{cn:'窗台上的半杯', en:'Half a Glass on the Sill'},{cn:'一个人的电影散场', en:'Movie Credits, Audience of One'}],
+      thrill: [{cn:'孤独尝起来是什么', en:'What Does Loneliness Taste Like'},{cn:'和陌生城市干杯', en:'Cheers to a Strange City'},{cn:'夜游者的第一站', en:"Night Wanderer's First Stop"}],
+      neutral:[{cn:'安静是另一种陪伴', en:'Silence Is Company Too'},{cn:'月亮也是一个人', en:'The Moon Is Alone Too'},{cn:'杯底的对话', en:'Conversations at the Bottom'}],
+    },
+    romantic: {
+      warm:   [{cn:'嘴角那半秒的停顿', en:'Half a Second on Your Lips'},{cn:'偷偷存起来的甜', en:'Sweetness Saved in Secret'},{cn:'心跳漏了一拍', en:'A Heartbeat Skipped'}],
+      cold:   [{cn:'晚安之后还在想', en:'Still Thinking After Goodnight'},{cn:'距离是一种味道', en:'Distance Has a Flavor'},{cn:'隔着屏幕的温度', en:'Warmth Through the Screen'}],
+      fierce: [{cn:'吻比酒烈', en:'A Kiss Stronger Than Liquor'},{cn:'心脏在敲鼓', en:'My Heart Is Drumming'},{cn:'今晚只看你', en:'Eyes Only for You Tonight'}],
+      light:  [{cn:'粉色是心跳的颜色', en:'Pink Is What Hearts Sound Like'},{cn:'阳光刚好打在你脸上', en:'Sunlight Just Reached Your Face'},{cn:'第一次牵手的温度', en:'Temperature of the First Hand-Hold'}],
+      thrill: [{cn:'第一封未读消息', en:'The First Unread Message'},{cn:'意料之外的心动', en:'Unexpected Flutter'},{cn:'命运的算法', en:"Destiny's Algorithm"}],
+      neutral:[{cn:'玫瑰色的晚风', en:'Rose-Tinted Evening Breeze'},{cn:'两根吸管一杯酒', en:'Two Straws, One Glass'},{cn:'说不出口的那三个字', en:'Three Words Left Unspoken'}],
+    },
+    tired: {
+      warm:   [{cn:'被子和酒一起暖', en:'Blanket and Bourbon Together'},{cn:'从脚趾开始放松', en:'Relaxation Starts at the Toes'},{cn:'有人在等你回家', en:'Someone Waits for You'}],
+      cold:   [{cn:'先把今天叠好收起来', en:'Fold Today and Put It Away'},{cn:'凌晨的出租车窗', en:'Taxi Window at Dawn'},{cn:'加班第三杯咖啡变成了酒', en:'The Third Coffee Became a Drink'}],
+      fierce: [{cn:'明天再说明天的事', en:"Tomorrow's Problems Are Tomorrow's"},{cn:'今天的我已下线', en:'I Am Offline for Today'},{cn:'闹钟是最大的敌人', en:'The Alarm Is My Enemy'}],
+      light:  [{cn:'枕头在叫我的名字', en:'The Pillow Calls My Name'},{cn:'最后三集明天再看', en:'Last Three Episodes Tomorrow'},{cn:'困意比酒先到', en:'Sleepiness Arrived First'}],
+      thrill: [{cn:'熬夜到看见日出', en:'Stayed Up Until Sunrise'},{cn:'疲惫也是一种极限运动', en:'Exhaustion as Extreme Sport'},{cn:'在崩溃边缘喝一杯', en:'A Drink at the Edge'}],
+      neutral:[{cn:'肩膀终于放下来了', en:'Shoulders Finally Dropped'},{cn:'今天用了120%的力气', en:'120% Effort Today'},{cn:'深呼吸然后放手', en:'Breathe Deep and Let Go'}],
+    },
+    experiment: {
+      warm:   [{cn:'第一口是意外', en:'The First Sip Was Accidental'},{cn:'好奇心的奖赏', en:'Reward of Curiosity'},{cn:'意料之外的温柔', en:'Unexpected Tenderness'}],
+      cold:   [{cn:'瓶子里的问号', en:'A Question Mark in a Bottle'},{cn:'未知的蓝', en:'The Blue of the Unknown'},{cn:'实验记录第37页', en:'Lab Notes Page 37'}],
+      fierce: [{cn:'混乱是种天赋', en:'Chaos Is a Gift'},{cn:'打翻调色盘', en:'Spilled the Palette'},{cn:'规则是用来打破的', en:'Rules Are Made to Break'}],
+      light:  [{cn:'不知道但想试试', en:"Don't Know But Let's Try"},{cn:'随便摇一杯', en:'Shake Something Random'},{cn:'今天心情是问号', en:'Today Feels Like a Question Mark'}],
+      thrill: [{cn:'第一次调酒的勇气', en:'Courage of a First Mix'},{cn:'味蕾的冒险', en:'Adventure on the Palate'},{cn:'没有地图的旅行', en:'A Trip Without Maps'}],
+      neutral:[{cn:'配方之外的灵感', en:'Inspiration Off-Recipe'},{cn:'也许会很好喝', en:'It Might Be Delicious'},{cn:'炼金术士的笔记', en:"An Alchemist's Notes"}],
+    },
+    angry: {
+      warm:   [{cn:'发完火之后的拥抱', en:'A Hug After the Storm'},{cn:'怒气散去的温度', en:'The Temperature After Rage Fades'},{cn:'生气也要好好喝', en:'Angry but Drinking Well'}],
+      cold:   [{cn:'火焰写了一封信', en:'The Flame Wrote a Letter'},{cn:'冰与火之间', en:'Between Ice and Fire'},{cn:'冷到极致是愤怒', en:'Extreme Cold Is Rage'}],
+      fierce: [{cn:'把那句话烧掉', en:'Burn That Sentence Down'},{cn:'辣到忘记生气', en:'Too Spicy to Stay Mad'},{cn:'一口闷的勇气', en:'The Courage to Down It All'}],
+      light:  [{cn:'算了不想了干杯', en:'Forget It, Cheers'},{cn:'深呼吸然后一饮而尽', en:'Breathe Deep Then Bottoms Up'},{cn:'明天又是好人', en:'Good Person Again Tomorrow'}],
+      thrill: [{cn:'暴风雨的眼', en:'Eye of the Storm'},{cn:'怒火也能炼金', en:'Even Rage Can Transmute'},{cn:'用辣椒点燃一切', en:'Light It All With Chili'}],
+      neutral:[{cn:'需要一杯烈的', en:'I Need Something Strong'},{cn:'舌尖上的火焰', en:'Flame on the Tongue'},{cn:'把玻璃杯放重一点', en:'Set the Glass Down Hard'}],
+    },
+    sweet: {
+      warm:   [{cn:'三点钟的阳光味', en:'Tastes Like 3PM Sunshine'},{cn:'被温柔腌过的下午', en:'An Afternoon Marinated in Softness'},{cn:'蜜桃熟了的季节', en:'Season When Peaches Ripen'}],
+      cold:   [{cn:'甜是一种盔甲', en:'Sweetness as Armor'},{cn:'糖衣包裹的秘密', en:'A Secret Wrapped in Sugar'},{cn:'深夜的一颗草莓', en:'A Strawberry at Midnight'}],
+      fierce: [{cn:'甜到皱纹都舒展', en:'Sweet Enough to Smooth Wrinkles'},{cn:'含糖量超标警告', en:'Sugar Level Warning'},{cn:'甜蜜是最好的复仇', en:'Sweetness Is the Best Revenge'}],
+      light:  [{cn:'糖在嘴里写了情书', en:'Sugar Wrote a Love Letter'},{cn:'棉花糖色的傍晚', en:'Cotton Candy Evening'},{cn:'第一口冰淇淋的快乐', en:'Joy of the First Scoop'}],
+      thrill: [{cn:'从没尝过这种甜', en:'Never Tasted This Kind of Sweet'},{cn:'甜味的新大陆', en:'A New World of Sweet'},{cn:'味蕾的蜜月', en:'Honeymoon for the Palate'}],
+      neutral:[{cn:'刚好的甜度', en:'Just the Right Sweetness'},{cn:'午后的一小口幸福', en:'A Small Sip of Afternoon Joy'},{cn:'嘴角自动上扬', en:'Corners of Mouth Rise'}],
+    },
+  };
+
+  let cn, en;
+  const pool = (NAMES[moodKey] && NAMES[moodKey][tone]) || (NAMES[moodKey] && NAMES[moodKey].neutral) || NAMES.experiment.neutral;
+  const nameIdx = (Math.floor(Math.random()*pool.length) + (again?1:0)) % pool.length;
+  cn = pool[nameIdx].cn;
+  en = pool[nameIdx].en;
+
+  /* 嗅觉档案 */
+  const NOSE = {
+    celebrate: { top:'柠檬皮、气泡', heart:'橙花、白桃', base:'香草、蜂蜜' },
+    relax:     { top:'薄荷、青柠',   heart:'黄瓜、海盐', base:'雪松、白茶' },
+    social:    { top:'橙、葡萄柚',   heart:'百香果',     base:'焦糖' },
+    lonely:    { top:'烟熏、大黄',   heart:'黑樱桃',     base:'橡木、皮革' },
+    romantic:  { top:'玫瑰、荔枝',   heart:'红莓',       base:'麝香、香草' },
+    tired:     { top:'桂皮',         heart:'可可、奶油', base:'苦杏、檀香' },
+    experiment:{ top:'紫罗兰、薰衣草',heart:'蓝莓',       base:'墨水气息' },
+    angry:     { top:'胡椒、姜',     heart:'辣椒、烟熏', base:'木炭' },
+    sweet:     { top:'白桃、荔枝',   heart:'杏花',       base:'奶油糖' },
+  };
+  const noses = moods.map(m=>NOSE[m.key]).filter(Boolean);
+  const nose = noses.length ? {
+    top:   noses.map(n=>n.top).join('、'),
+    heart: noses.map(n=>n.heart).join('、'),
+    base:  noses.map(n=>n.base).join('、'),
+  } : NOSE.experiment;
+
+  /* 故事：根据情绪+色调匹配意境，不直接引用用户原文 */
+  const STORIES = {
+    celebrate: {
+      warm: '今天值得被记住。金色的气泡像细小的烟火，在杯壁上写着庆祝的密码。温暖从第一口开始蔓延，直到整个夜晚都发着光。',
+      cold: '一个人的庆祝也是庆祝。在安静的夜里举起杯子，月光刚好落在液面上。不需要观众，自己知道就够了。',
+      fierce:'今夜属于胜利者——把酒杯举到最高，让气泡替你欢呼。所有的努力都在这一口里兑现了。',
+      light:'值得一杯的好事不需要多大。也许只是天气很好，也许只是一件小事刚好成了。气泡升起，刚好赶上嘴角的弧度。',
+      thrill:'意料之外的好消息最值得庆祝。打开这杯酒的方式，就像拆开一份没有落款的礼物。',
+      neutral:'举杯。气泡升起的速度，刚好等于一个好消息抵达的时间。今晚的月亮好像也开了香槟。',
+    },
+    relax: {
+      warm: '世界的音量终于调到了最低。杯中的凉意像一只温柔的手，从肩膀开始，一寸一寸帮你松开今天打的结。',
+      cold: '把电脑合上的那一秒，整个屋子都松了一口气。薄荷在杯里化开，凉意从指尖蔓延到肩膀。一切都在慢下来。',
+      fierce:'终于——不用再回消息、不用再假装精力充沛。这杯酒是今天最后一个任务：什么都不做。',
+      light:'阳台上的风刚好，手里的杯子刚好凉。没有人催、没有消息要回，时间终于只属于自己。',
+      thrill:'放松也是一种冒险——看看什么都不做的时候，脑袋里会冒出什么想法。答案在第二口之后。',
+      neutral:'松开领带的瞬间，呼吸变长了半拍。杯里的薄荷替你接管了剩下的一切。今晚，先不想了。',
+    },
+    social: {
+      warm: '笑声是最好的下酒菜。杯子碰在一起的声音比说一百句「我很开心」都有用。今晚所有人的频率都对上了。',
+      cold: '热闹散去之后，回味反而更浓。那些杯中的笑声会留下来，在安静的夜里发酵成一段温暖的记忆。',
+      fierce:'谁先倒谁买单！桌上的酒没喝完之前，所有的烦恼都不许进门。今夜只属于这几个人。',
+      light:'拼桌认识的人，聊得比老朋友还投缘。酒精的好处是——让陌生变成熟悉只需要三杯的距离。',
+      thrill:'临时起意的聚会往往最难忘。谁也不知道今晚会聊到哪里去，但这就是最好的部分。',
+      neutral:'门铃响起，杯子先碰到了一起。果香在空气里写了一句俏皮话，第三杯之后才开始说真话。',
+    },
+    lonely: {
+      warm: '一个人喝酒不一定是孤独。也许只是想和自己好好待一会儿，听听心里那些平时被盖过的声音。',
+      cold: '深蓝色像那句没说出口的话，慢慢沉到杯底，又慢慢化掉。安静也是一种陪伴，酒杯不会打断你。',
+      fierce:'独饮者不需要理由，也不需要同情。这杯酒是和自己的对话，烈一点刚好能把某些念头烧干净。',
+      light:'一个人的夜晚也没什么不好。窗台上放着半杯酒，月亮看起来比平时大一些。',
+      thrill:'孤独尝起来是什么味道？也许是深夜第二杯之后，那种说不清是苦还是回甘的尾韵。',
+      neutral:'影子是唯一的酒伴。杯底映出天花板的灯，慢慢转、慢慢化。有些话不说出来也没关系。',
+    },
+    romantic: {
+      warm: '粉色在唇边停了半秒，比心跳还慢一拍。有些感觉不需要说出来——尝到就懂了，心里的甜和杯里的刚好重合。',
+      cold: '隔着屏幕的温度，隔着距离的想念。这杯酒的颜色是玫瑰色的晚风，吹过来的时候带着那个人的轮廓。',
+      fierce:'心脏跳得太用力了。这杯酒是液态的勇气，喝完也许就能把那句一直没说的话说出口。',
+      light:'阳光刚好打在某个人脸上的样子，和这杯酒的颜色一模一样——暖、亮、让人忍不住微笑。',
+      thrill:'心动是没有预兆的。就像第一口酒的温度，在舌尖上停留的时间比预想的更长。',
+      neutral:'玫瑰色的液面像一封不需要寄出的情书。嘴角的弧度和杯沿刚好一致，这就是心动的味道。',
+    },
+    tired: {
+      warm: '紫色像一床被晒过的被子，把今天的疲倦折叠好，收进抽屉。明天是新的，但现在只属于这一杯的温暖。',
+      cold: '凌晨的出租车窗外，城市灯光一条条地退。今天已经用完了120%的力气，剩下的交给这杯酒就好。',
+      fierce:'闹钟是最大的敌人，deadline是第二大的。但现在它们统统被关在门外了——这杯酒是今天最后的奖赏。',
+      light:'枕头在叫我的名字，但在那之前先喝完这一口。困意和酒意混在一起，像被慢慢裹进棉花糖里。',
+      thrill:'熬夜到看见日出也是一种极限运动。疲惫到了极点反而清醒了——这种清醒值得一杯。',
+      neutral:'肩膀终于放下来了。深呼吸，然后让温暖的液体从喉咙滑到胃里。今天辛苦了，明天再说明天的事。',
+    },
+    experiment: {
+      warm: '谁知道呢——也许最好喝的鸡尾酒都是「不小心」调出来的。带着好奇心的第一口，从来不会让人失望。',
+      cold: '实验记录上写着：配方未知、口味待定、心情是唯一的变量。杯中的颜色像一个等待解开的谜。',
+      fierce:'打翻调色盘，把规则扔进搅拌杯。今天不按任何经典配方来——混乱本身就是一种天赋。',
+      light:'随便摇一杯，不看配方。也许会难喝、也许会惊艳——但至少不无聊。',
+      thrill:'第一次调酒的勇气，等于第一次跳伞的勇气。屏住呼吸，入口的瞬间一切就有了答案。',
+      neutral:'炼金术士的笔记里没有标准答案。第一口永远是意外，第二口才是确认——也许再来一杯。',
+    },
+    angry: {
+      warm: '发完火之后的那一口，比预想的温柔。怒气散掉之后总会留下一点空间，刚好够放下这杯酒的温度。',
+      cold: '冰块和火焰在同一个杯子里对峙。辛辣在舌尖上烧过去的时候，那些堵在胸口的字也跟着烧掉了。',
+      fierce:'辣到忘记生气——这就对了。一口闷下去的时候不需要任何体面，痛快比讲道理有用一万倍。',
+      light:'算了。深呼吸，然后一饮而尽。明天又是好人，但今天允许自己生一会儿气。',
+      thrill:'怒火也能炼金。把所有不爽的东西丢进杯子里搅一搅——也许烧完之后，剩下的反而是金子。',
+      neutral:'需要一杯烈的。舌尖上的火焰从喉咙一路烧到胃里，烧完之后世界重新变得安静了。',
+    },
+    sweet: {
+      warm: '甜得像下午三点的阳光，把所有皱褶都熨平了一些。嘴角和杯沿，弧度刚好一致。世界在这一口里变软了。',
+      cold: '甜是一种盔甲。在冷的日子里，这杯酒是一颗包着糖衣的小太阳，从嘴里暖到心里。',
+      fierce:'含糖量超标又怎样？今天只想被甜蜜包围，不接受任何苦的东西。甜蜜是最好的复仇。',
+      light:'棉花糖色的傍晚，适合喝一口刚好的甜。不多不少，是蜜桃刚熟时的那种——鲜、润、回味带笑。',
+      thrill:'从没尝过这种甜。是新鲜的、让人惊喜的、忍不住再来一口的那种——味蕾的蜜月期正式开始。',
+      neutral:'午后的一小口幸福，不需要任何理由。杯里的甜和此刻的心情刚好同频，嘴角不自觉上扬。',
+    },
+  };
+  let story;
+  const storyPool = STORIES[moodKey] || STORIES.experiment;
+  const baseStory = storyPool[tone] || storyPool.neutral;
+
+  if(text && text.length >= 2){
+    /* 用户有输入时：从原文里提炼"主题词"和"情境碎片"，
+       自然地编进故事开头——不照搬原文，但故事会真的"指向"用户写的那件事。 */
+    const topic = extractTopic(text);
+    const fragment = extractFragment(text);
+    /* 主题词模板：用主题词组成一句"指向性"开场 */
+    const TOPIC_OPENERS = {
+      warm:   [`关于"${topic}"，心里其实早就有了答案。`, `"${topic}"这件事值得被认真记住。`, `提到"${topic}"，嘴角不自觉就软了。`],
+      cold:   [`"${topic}"——这两个字今晚有点重。`, `把"${topic}"轻轻放进杯子里，让它沉一会儿。`, `"${topic}"不必说出口，杯子会替你听见。`],
+      fierce: [`"${topic}"——没什么好憋着的。`, `就为"${topic}"这件事，今晚必须烈一点。`, `把"${topic}"扔进火里，让它烧个干净。`],
+      light:  [`"${topic}"嘛，不必想得太用力。`, `"${topic}"这件小事，配一杯刚好的酒。`, `今天就让"${topic}"轻轻飘着。`],
+      thrill: [`"${topic}"——还没尝过的味道，正合适。`, `"${topic}"这件事，刚好配一次冒险。`, `把"${topic}"的心跳搅进酒里。`],
+      neutral:[`关于"${topic}"，先喝一口再说。`, `"${topic}"这件事，留给这杯慢慢消化。`, `"${topic}"——杯子比脑子更懂。`],
+    };
+    const openers = TOPIC_OPENERS[tone] || TOPIC_OPENERS.neutral;
+    const opener = openers[Math.floor(Math.random() * openers.length)];
+    /* 在 baseStory 中段，再补一句指向 fragment 的内心独白，让"用户的事"贯穿全篇 */
+    const echoes = {
+      warm:   `——就像${fragment}时的那种感觉。`,
+      cold:   `——${fragment}的余味，现在才慢慢浮上来。`,
+      fierce: `——${fragment}的那点不甘，全在这一口里。`,
+      light:  `——${fragment}也不过如此，喝完就过去了。`,
+      thrill: `——${fragment}的心跳还没停，刚好。`,
+      neutral:`——${fragment}的味道，大概就是这样。`,
+    };
+    const echo = echoes[tone] || echoes.neutral;
+    /* 把 baseStory 拆成两句，把 echo 插在第一句之后 */
+    const parts = baseStory.split('。').filter(s=>s.trim());
+    let body;
+    if(parts.length >= 2){
+      body = parts[0] + '。' + echo + ' ' + parts.slice(1).join('。') + (baseStory.endsWith('。')?'。':'');
+    } else {
+      body = baseStory + ' ' + echo;
+    }
+    story = opener + ' ' + body;
+  } else {
+    story = baseStory;
+  }
+  // 多情绪时追加第二段
+  if(moods.length > 1){
+    const extra = (STORIES[moods[1].key] || STORIES.experiment)[tone] || '';
+    if(extra) story += ' ' + extra.split('。')[0] + '。';
+  }
+
+  const abv  = state.cleanMode ? 12 : Math.round(15 + Math.random()*8);
+  const cal  = state.cleanMode ? Math.round(80 + Math.random()*40) : Math.round(140 + Math.random()*80);
+  const sugar= state.cleanMode ? Math.round(2 + Math.random()*3) : Math.round(10 + Math.random()*8);
+
+  return {
+    id: Date.now(), name: cn, en, mood: moods.map(m=>m.label).join(' + '),
+    moodKeys: moods.map(m=>m.key), color:[moods[0].color[0], (moods[1]||moods[0]).color[1]],
+    emoji: moods[0].emoji,
+    tags: [...new Set(moods.flatMap(m=>m.tags))].slice(0,5),
+    abv, cal, sugar, clean: state.cleanMode,
+    recipe, alt, story, nose, photo:null,
+    date: new Date().toISOString().slice(0,10),
+  };
+}
+
+function renderResult(r){
+  const card = document.getElementById('resultCard');
+  const badges = [];
+  if(r.clean){
+    badges.push(`<span class="badge badge-clean">✓ 干净微醺</span>`);
+    if(r.cal<100)  badges.push(`<span class="badge badge-low">低卡 ${r.cal}kcal</span>`);
+    if(r.sugar<5)  badges.push(`<span class="badge badge-low">低糖 ${r.sugar}g</span>`);
+  } else {
+    badges.push(`<span class="badge badge-warn">ABV ${r.abv}%</span>`);
+  }
+  if(state.fuzzyMode) badges.push(`<span class="badge badge-fuzzy">模糊度量</span>`);
+
+  const photo = r.photo;
+  const moodKey = r.moodKeys ? r.moodKeys[0] : 'celebrate'; // 获取主情绪key
+  const art = photo
+    ? `<img src="${photo}" class="cocktail-art object-cover" style="object-fit:cover"/>`
+    : `<img src="./mood-${moodKey}.jpg" 
+             alt="${r.mood}" 
+             class="cocktail-art object-cover"
+             onerror="this.outerHTML='<div class=\\'cocktail-art\\' style=\\'--c1:${r.color[0]};--c2:${r.color[1]}\\'><div class=\\'glass\\'></div><div class=\\'label-emoji\\'>${r.emoji}</div></div>'">`;
+
+  const recipeRows = r.recipe.map(([k,v])=>{
+    const vv = state.fuzzyMode ? fuzzy(v) : v;
+    return `<li class="flex justify-between items-center border-b border-amber/10 py-1.5">
+              <button class="text-left hover:text-amber" onclick="showFlavor('${k}')">${k} <span class="text-mute text-[10px]">ⓘ</span></button>
+              <span class="text-parch/80 text-xs">${vv}</span>
+            </li>`;
+  }).join('');
+
+  card.innerHTML = `
+    <div>${art}</div>
+    <div class="mt-3 flex items-start justify-between gap-2">
+      <div class="min-w-0">
+        <div class="rune text-amber text-[10px] truncate">${r.en.toUpperCase()}</div>
+        <div class="text-xl font-bold mt-0.5 truncate">${r.name}</div>
+        <div class="text-mute text-[11px] mt-0.5 truncate">${r.date} · ${r.mood}</div>
+      </div>
+    </div>
+    <div class="mt-2 flex flex-wrap gap-1.5">${badges.join('')}</div>
+    <div class="mt-2 flex flex-wrap gap-1">
+      ${r.tags.map(t=>`<span class="chip text-[10px] py-0 px-1.5">${t}</span>`).join('')}
+    </div>
+
+    <div class="ink-divider my-3"></div>
+    <div class="rune text-amber text-[10px] mb-2">RECIPE · 配方</div>
+    <ul>${recipeRows}</ul>
+    ${r.alt.length ? `<div class="mt-2 text-[11px] text-mute">${r.alt.map(a=>'· '+a).join('<br/>')}</div>`:''}
+
+    <div class="ink-divider my-3"></div>
+    <div class="rune text-amber text-[10px] mb-2">NOSE · 嗅觉档案</div>
+    <div class="text-[11px] text-parch/85 grid grid-cols-3 gap-2">
+      <div><span class="text-amber">前调</span><br/>${r.nose.top}</div>
+      <div><span class="text-amber">中调</span><br/>${r.nose.heart}</div>
+      <div><span class="text-amber">尾调</span><br/>${r.nose.base}</div>
+    </div>
+
+    <div class="ink-divider my-3"></div>
+    <div class="flex items-center justify-between mb-2">
+      <div class="rune text-amber text-[10px]">STORY · 故事</div>
+      <button id="editStoryBtn" class="text-amber text-[11px]">✏ 编辑</button>
+    </div>
+    <p id="storyText" class="leading-relaxed text-parch/90 text-sm">${r.story}</p>
+
+    <div class="ink-divider my-3"></div>
+    <div class="rune text-amber text-[10px] mb-1">METHOD · 步骤</div>
+    <p class="text-mute text-xs leading-relaxed">
+      冰块铺满杯子约 8 分满；按上方顺序倒入；用长勺顺时针搅 6 圈；
+      补满气泡水后<strong class="text-parch">不要再搅</strong>，让气泡自己说话。
+    </p>
+
+  `;
+  document.getElementById('editStoryBtn').addEventListener('click', ()=>{
+    const cur = state.lastResult.story;
+    document.getElementById('storyText').outerHTML =
+      `<textarea id="storyEdit" class="story-edit">${cur}</textarea>
+       <div class="mt-2 flex gap-2">
+         <button id="storySave"   class="btn-gold text-xs flex-1">保存</button>
+         <button id="storyCancel" class="btn-ghost flex-1">取消</button>
+       </div>`;
+    document.getElementById('storySave').addEventListener('click', ()=>{
+      state.lastResult.story = document.getElementById('storyEdit').value;
+      renderResult(state.lastResult);
+      toast('故事已更新');
+    });
+    document.getElementById('storyCancel').addEventListener('click', ()=> renderResult(state.lastResult));
+  });
+}
+
+window.showFlavor = (name) => {
+  const f = FLAVORS[name];
+  showModal(`<div class="rune text-amber text-[10px]">INGREDIENT</div>
+    <div class="text-lg font-semibold mt-0.5">${name}</div>
+    <p class="text-parch/85 text-sm mt-3 leading-relaxed">${f || '风味档案收录中…'}</p>`);
+};
+
+/* 上传实物图 */
+document.getElementById('uploadPhotoBtn').addEventListener('click', ()=>{
+  document.getElementById('photoInput').click();
+});
+document.getElementById('photoInput').addEventListener('change', e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const fr = new FileReader();
+  fr.onload = ev => {
+    if(!state.lastResult) return;
+    state.lastResult.photo = ev.target.result;
+    renderResult(state.lastResult);
+    toast('已附上你的实物图');
+  };
+  fr.readAsDataURL(f);
+});
+
+/* 收录 */
+document.getElementById('saveBtn').addEventListener('click', ()=>{
+  if(!state.lastResult) return;
+  const i = state.bar.findIndex(x=>x.id===state.lastResult.id);
+  if(i>=0) state.bar[i] = state.lastResult;
+  else state.bar.unshift({...state.lastResult});
+  save(LS.bar, state.bar);
+  toast('已收录到我的小酒馆');
+});
+
+/* 分享卡 */
+function buildShare(r){
+  const photo = r.photo;
+  const moodKey = r.moodKeys ? r.moodKeys[0] : 'celebrate';
+  const art = photo
+    ? `<img src="${photo}" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px"/>`
+    : `<img src="./mood-${moodKey}.jpg" alt="${r.mood}" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px" 
+             onerror="this.outerHTML='<div class=\\'cocktail-art\\' style=\\'--c1:${r.color[0]};--c2:${r.color[1]}\\'><div class=\\'glass\\'></div><div class=\\'label-emoji\\'>${r.emoji}</div></div>'">`;
+  const badges = [];
+  if(r.clean) badges.push(`<span class="badge badge-clean">✓ 干净微醺</span>`);
+  if(r.clean && r.cal<100) badges.push(`<span class="badge badge-low">低卡 ${r.cal}kcal</span>`);
+  if(r.clean && r.sugar<5) badges.push(`<span class="badge badge-low">低糖 ${r.sugar}g</span>`);
+  return `
+    <div class="rune text-amber text-[10px]">${r.en.toUpperCase()}</div>
+    <div class="text-xl font-bold mt-0.5">${r.name}</div>
+    <div class="text-mute text-[11px] mt-0.5">${r.date} · ${r.mood}</div>
+    <div class="mt-3">${art}</div>
+    <div class="mt-3 flex flex-wrap gap-1.5">${badges.join('')}</div>
+    <p class="leading-relaxed text-parch/90 text-sm mt-3">${r.story}</p>
+    <div class="mt-3 ink-divider"></div>
+    <div class="mt-2 text-[11px] text-mute flex items-center justify-between">
+      <span>⚗ 微醺炼金术 · Tipsy Alchemy</span>
+      <span>ABV ${r.abv}% · ${r.cal}kcal</span>
+    </div>`;
+}
+document.getElementById('shareBtn').addEventListener('click', ()=>{
+  if(!state.lastResult) return;
+  document.getElementById('shareCanvas').innerHTML = buildShare(state.lastResult);
+  document.getElementById('shareModal').classList.remove('hidden');
+});
+document.getElementById('shareClose').addEventListener('click', ()=>{
+  document.getElementById('shareModal').classList.add('hidden');
+  document.getElementById('shareImgWrap').classList.add('hidden');
+  document.getElementById('shareCanvas').classList.remove('hidden');
+});
+document.getElementById('shareBack').addEventListener('click', ()=>{
+  document.getElementById('shareImgWrap').classList.add('hidden');
+  document.getElementById('shareCanvas').classList.remove('hidden');
+});
+document.getElementById('shareDownload').addEventListener('click', async ()=>{
+  const btn = document.getElementById('shareDownload');
+  btn.disabled = true; btn.textContent = '生成中…';
+  try{
+    const r = state.lastResult; if(!r) throw new Error('no result');
+    const W = 640, padding = 40;
+    // 预估高度
+    const storyLines = wrapText(r.story, W - padding*2);
+    let H = 60 + 50 + 30 + 20 + storyLines.length * 32 + 80;
+    if(r.photo) H += 320;
+    else H += 200;
+
+    const cvs = document.createElement('canvas');
+    cvs.width = W; cvs.height = H;
+    const ctx = cvs.getContext('2d');
+
+    // 背景渐变
+    const bg = ctx.createLinearGradient(0,0,0,H);
+    bg.addColorStop(0, '#141218');
+    bg.addColorStop(1, '#0b0a0e');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0,0,W,H);
+
+    // 金色边框
+    ctx.strokeStyle = 'rgba(212,162,76,0.4)';
+    ctx.lineWidth = 2;
+    ctx.roundRect(10,10,W-20,H-20,16);
+    ctx.stroke();
+
+    let y = padding + 10;
+
+    // 英文名 (rune)
+    ctx.fillStyle = '#d4a24c';
+    ctx.font = '12px "Cinzel", serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(r.en.toUpperCase(), W/2, y);
+    y += 30;
+
+    // 中文名
+    ctx.fillStyle = '#f5f0e8';
+    ctx.font = 'bold 24px "Noto Serif SC", serif';
+    ctx.fillText(r.name, W/2, y);
+    y += 30;
+
+    // 日期 · 心情
+    ctx.fillStyle = '#8a8092';
+    ctx.font = '12px sans-serif';
+    ctx.fillText(`${r.date} · ${r.mood}`, W/2, y);
+    y += 30;
+
+    // 图片区域或酒杯色块
+    if(r.photo){
+      try {
+        const img = await loadImage(r.photo);
+        const iw = W - padding*2, ih = 280;
+        ctx.save();
+        ctx.beginPath(); ctx.roundRect(padding, y, iw, ih, 12); ctx.clip();
+        const scale = Math.max(iw/img.width, ih/img.height);
+        const sw = img.width*scale, sh = img.height*scale;
+        ctx.drawImage(img, padding+(iw-sw)/2, y+(ih-sh)/2, sw, sh);
+        ctx.restore();
+        y += ih + 20;
+      } catch(_){ y += 20; }
+    } else {
+      // 使用对应情绪的背景图
+      const moodKey = r.moodKeys ? r.moodKeys[0] : 'celebrate';
+      try {
+        const img = await loadImage(`./mood-${moodKey}.jpg`);
+        const iw = W - padding*2, ih = 280;
+        ctx.save();
+        ctx.beginPath(); ctx.roundRect(padding, y, iw, ih, 12); ctx.clip();
+        const scale = Math.max(iw/img.width, ih/img.height);
+        const sw = img.width*scale, sh = img.height*scale;
+        ctx.drawImage(img, padding+(iw-sw)/2, y+(ih-sh)/2, sw, sh);
+        ctx.restore();
+        y += ih + 20;
+      } catch(_) {
+        // 如果图片加载失败，回退到渐变色块
+        const gh = 160, gw = 200;
+        const gx = (W-gw)/2;
+        const grad = ctx.createLinearGradient(gx, y, gx+gw, y+gh);
+        grad.addColorStop(0, r.color[0] || '#e06c75');
+        grad.addColorStop(1, r.color[1] || '#d4a24c');
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.roundRect(gx, y, gw, gh, 16); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.font = '48px serif';
+        ctx.fillText(r.emoji || '🍸', W/2, y + gh/2 + 16);
+        y += gh + 20;
+      }
+    }
+
+    // 徽章
+    ctx.textAlign = 'left';
+    if(r.clean){
+      ctx.fillStyle = 'rgba(212,162,76,0.15)';
+      ctx.beginPath(); ctx.roundRect(padding, y, 90, 22, 8); ctx.fill();
+      ctx.fillStyle = '#d4a24c';
+      ctx.font = '11px sans-serif';
+      ctx.fillText('✓ 干净微醺', padding+8, y+15);
+      y += 32;
+    } else { y += 6; }
+
+    // 故事文本
+    ctx.fillStyle = '#ddd8d0';
+    ctx.font = '14px "Noto Serif SC", sans-serif';
+    ctx.textAlign = 'left';
+    for(const line of storyLines){
+      ctx.fillText(line, padding, y);
+      y += 28;
+    }
+    y += 16;
+
+    // 分割线
+    const divGrad = ctx.createLinearGradient(padding, y, W-padding, y);
+    divGrad.addColorStop(0, 'transparent');
+    divGrad.addColorStop(0.5, 'rgba(212,162,76,0.5)');
+    divGrad.addColorStop(1, 'transparent');
+    ctx.strokeStyle = divGrad;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(padding, y); ctx.lineTo(W-padding, y); ctx.stroke();
+    y += 20;
+
+    // 底部信息
+    ctx.fillStyle = '#8a8092';
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('⚗ 微醺炼金术 · Tipsy Alchemy', padding, y);
+    ctx.textAlign = 'right';
+    ctx.fillText(`ABV ${r.abv}% · ${r.cal}kcal`, W-padding, y);
+
+    const dataUrl = cvs.toDataURL('image/png');
+
+    // 显示为图片（长按可保存）
+    const imgEl = document.getElementById('shareImg');
+    imgEl.src = dataUrl;
+    document.getElementById('shareCanvas').classList.add('hidden');
+    document.getElementById('shareImgWrap').classList.remove('hidden');
+
+    // 桌面端尝试下载
+    try {
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `${r.name||'tipsy'}.png`;
+      a.style.display='none';
+      document.body.appendChild(a); a.click();
+      setTimeout(()=>a.remove(), 300);
+    } catch(_){}
+
+    toast('长按图片保存到相册');
+  }catch(e){
+    console.error('share error:', e);
+    toast('生成失败，请直接截屏保存');
+  } finally {
+    btn.disabled = false; btn.textContent = '⬇ 生成图片';
+  }
+});
+
+// === 分享卡辅助函数 ===
+// roundRect polyfill for older browsers
+if(!CanvasRenderingContext2D.prototype.roundRect){
+  CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r){
+    if(typeof r === 'number') r = [r,r,r,r];
+    this.moveTo(x+r[0],y);
+    this.lineTo(x+w-r[1],y); this.arcTo(x+w,y,x+w,y+r[1],r[1]);
+    this.lineTo(x+w,y+h-r[2]); this.arcTo(x+w,y+h,x+w-r[2],y+h,r[2]);
+    this.lineTo(x+r[3],y+h); this.arcTo(x,y+h,x,y+h-r[3],r[3]);
+    this.lineTo(x,y+r[0]); this.arcTo(x,y,x+r[0],y,r[0]);
+    this.closePath();
+  };
+}
+function wrapText(text, maxWidth){
+  const cvs = document.createElement('canvas');
+  const ctx = cvs.getContext('2d');
+  ctx.font = '14px "Noto Serif SC", sans-serif';
+  const lines = []; let line = '';
+  for(const ch of text){
+    if(ch === '\n'){ lines.push(line); line = ''; continue; }
+    const test = line + ch;
+    if(ctx.measureText(test).width > maxWidth){ lines.push(line); line = ch; }
+    else { line = test; }
+  }
+  if(line) lines.push(line);
+  return lines;
+}
+function loadImage(src){
+  return new Promise((resolve, reject)=>{
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = ()=> resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+document.getElementById('shareCopy').addEventListener('click', async ()=>{
+  const r = state.lastResult; if(!r) return;
+  const t = `【${r.name}】${r.en}\n${r.story}\n— 微醺炼金术 ⚗`;
+  try{ await navigator.clipboard.writeText(t); toast('已复制故事'); }catch{ toast('请长按选中复制'); }
+});
+
+/* =========================================================
+   2) 酒柜（修复全部交互 + 分类联动下拉）
+   ========================================================= */
+function refillNameOptions(cat){
+  const sel = document.getElementById('addName');
+  const items = CAT_ITEMS[cat] || PRESETS;
+  sel.innerHTML = '<option value="">选择名称</option>' +
+    items.map(p=>`<option value="${p}">${p}</option>`).join('') +
+    '<option value="__custom__">＋ 自定义…</option>';
+}
+function renderCabinet(){
+  const grid = document.getElementById('cabinetGrid');
+  grid.innerHTML = state.cabinet.length ? state.cabinet.map(it=>`
+    <div class="flex items-center justify-between bg-ink2 rounded-xl border border-amber/15 p-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg grid place-items-center text-base"
+             style="background:linear-gradient(135deg, rgba(212,162,76,.25), rgba(164,121,255,.2));">${iconOf(it.name)}</div>
+        <div>
+          <div class="text-[10px] text-amber">${it.cat}</div>
+          <div class="text-sm font-semibold">${it.name}</div>
+          <div class="text-[10px] text-mute">${amountText(it.amount)}</div>
+        </div>
+      </div>
+      <button class="text-mute hover:text-amber text-xs cab-rm-btn" data-rm="${it.id}">删除</button>
+    </div>
+  `).join('') : `<div class="text-mute text-sm text-center py-6">酒柜空空如也</div>`;
+
+  // 预设快捷添加 — 已在酒柜的显示为灰色
+  const presetGrid = document.getElementById('presetGrid');
+  presetGrid.innerHTML =
+    PRESETS.map(p=>{
+      const inCab = state.cabinet.some(x=>x.name===p);
+      return inCab
+        ? `<button class="chip text-xs opacity-40 cursor-default" disabled>✓ ${p}</button>`
+        : `<button class="chip text-xs" data-add="${p}">＋ ${p}</button>`;
+    }).join('');
+}
+
+/* 酒柜事件代理 — 只绑定一次，同步更新 */
+document.getElementById('cabinetGrid').addEventListener('click', function(e){
+  const btn = e.target.closest('.cab-rm-btn');
+  if(!btn) return;
+  e.preventDefault(); e.stopPropagation();
+  const id = Number(btn.dataset.rm);
+  if(!id && id !== 0) return;
+  /* 立即从 DOM 移除整行卡片，给用户即时视觉反馈 */
+  const row = btn.closest('.flex.items-center.justify-between');
+  if(row) row.remove();
+  state.cabinet = state.cabinet.filter(x=> Number(x.id) !== id);
+  save(LS.cabinet, state.cabinet);
+  renderCabinet();
+  toast('已删除');
+});
+document.getElementById('presetGrid').addEventListener('click', function(e){
+  const btn = e.target.closest('[data-add]');
+  if(!btn) return;
+  quickAdd(btn.dataset.add);
+});
+function iconOf(n){
+  if(['金酒','伏特加','威士忌','朗姆酒','龙舌兰','白兰地','清酒','黄酒','梅酒'].includes(n)) return '🍾';
+  if(['苏打水','汤力水','可乐','姜汁汽水','椰子水','牛奶','椰奶','酸奶','冰红茶','普罗赛克'].includes(n)) return '🥤';
+  if(['青柠','柠檬'].includes(n)) return '🍋';
+  if(['橙子','西柚','百香果','芒果','菠萝','西瓜','荔枝','苹果'].includes(n)) return '🍊';
+  if(['草莓','覆盆子','蓝莓','樱桃','蔓越莓'].includes(n)) return '🍓';
+  if(['桃子'].includes(n)) return '🍑';
+  if(n==='薄荷'||n==='黄瓜') return '🌿'; if(n==='蜂蜜') return '🍯';
+  if(n==='咖啡') return '☕'; if(n==='糖浆') return '🍯';
+  if(n==='蛋清'||n==='奶油') return '🥚'; if(n==='橙皮') return '🍊';
+  if(n.includes('利口酒')||n.includes('金巴利')||n.includes('阿佩罗')) return '🍸';
+  return '🧪';
+}
+function amountText(a){
+  if(a==null) return '不限量 / 未记录';
+  if(a>=400) return '余量 充足';
+  if(a>=150) return '余量 大半瓶 (~'+a+'ml)';
+  if(a>=30)  return '余量 不多了 (~'+a+'ml)';
+  return '余量 见底了';
+}
+function quickAdd(n){
+  if(state.cabinet.some(x=>x.name===n)){ toast(n+' 已在酒柜'); return; }
+  const cat = ['金酒','伏特加','威士忌','朗姆酒','龙舌兰','白兰地','清酒','黄酒','梅酒'].includes(n) ? '基酒'
+            : ['苏打水','汤力水','可乐','姜汁汽水','椰子水','牛奶','椰奶','酸奶','冰红茶','普罗赛克'].includes(n) ? '饮料'
+            : ['橙子','西柚','百香果','草莓','蓝莓','覆盆子','桃子','芒果','菠萝','西瓜','荔枝','苹果','樱桃','蔓越莓','黄瓜'].includes(n) ? '水果'
+            : '辅料';
+  state.cabinet.push({ id:Date.now(), cat, name:n, amount:null });
+  save(LS.cabinet, state.cabinet);
+  renderCabinet();
+  toast('已加入');
+}
+
+/* 添加按钮 — 展开/收起表单 */
+document.getElementById('addBtn').addEventListener('click', ()=>{
+  const form = document.getElementById('addForm');
+  form.classList.toggle('hidden');
+  if(!form.classList.contains('hidden')){
+    refillNameOptions(document.getElementById('addCategory').value || '基酒');
+  }
+});
+
+/* 分类下拉变化 → 刷新名称下拉 */
+document.getElementById('addCategory').addEventListener('change', e=>{
+  refillNameOptions(e.target.value);
+});
+
+/* 名称下拉 — 自定义选项 */
+document.getElementById('addName').addEventListener('change', e=>{
+  if(e.target.value === '__custom__'){
+    const n = prompt('输入自定义名称：'); if(!n) { e.target.value=''; return; }
+    const opt = document.createElement('option'); opt.value = n; opt.text = n; opt.selected = true;
+    e.target.insertBefore(opt, e.target.lastElementChild);
+  }
+});
+
+/* 提交添加 */
+document.getElementById('addSubmit').addEventListener('click', ()=>{
+  const cat = document.getElementById('addCategory').value;
+  const name = document.getElementById('addName').value.trim();
+  const amount = parseInt(document.getElementById('addAmount').value) || null;
+  if(!name || name==='__custom__') return toast('请选择名称');
+  if(state.cabinet.some(x=>x.name===name)) return toast(name+' 已在酒柜');
+  state.cabinet.push({id:Date.now(), cat, name, amount});
+  save(LS.cabinet, state.cabinet);
+  document.getElementById('addName').value=''; document.getElementById('addAmount').value='';
+  document.getElementById('addForm').classList.add('hidden');
+  renderCabinet();
+  toast('已加入');
+});
+
+/* 拍照识别 */
+document.getElementById('photoBtn').addEventListener('click', ()=>{
+  document.getElementById('cabinetPhoto').click();
+});
+document.getElementById('cabinetPhoto').addEventListener('change', e=>{
+  const f = e.target.files[0]; if(!f) return;
+  toast('AI 识别中…');
+  const fr = new FileReader();
+  fr.onload = ev => {
+    const guess = guessFromFilename(f.name);
+    showAiPreview(guess.length ? guess : [
+      { cat:'基酒', name:'威士忌', amount:700 },
+      { cat:'辅料', name:'蜂蜜',   amount:null },
+    ], ev.target.result);
+  };
+  fr.readAsDataURL(f);
+});
+function guessFromFilename(name){
+  const n = name.toLowerCase();
+  const map = { gin:['基酒','金酒'], vodka:['基酒','伏特加'], whiskey:['基酒','威士忌'], whisky:['基酒','威士忌'],
+    rum:['基酒','朗姆酒'], tequila:['基酒','龙舌兰'], brandy:['基酒','白兰地'],
+    lemon:['辅料','柠檬'], lime:['辅料','青柠'], mint:['辅料','薄荷'], honey:['辅料','蜂蜜'],
+    soda:['饮料','苏打水'], tonic:['饮料','汤力水'], syrup:['辅料','糖浆'], coffee:['辅料','咖啡'],
+    strawberry:['水果','草莓'], mango:['水果','芒果'], peach:['水果','桃子'],
+    orange:['水果','橙子'], grapefruit:['水果','西柚'], pineapple:['水果','菠萝'] };
+  const out = [];
+  Object.entries(map).forEach(([k,v])=>{
+    if(n.includes(k)) out.push({ cat:v[0], name:v[1], amount:null });
+  });
+  return out;
+}
+function showAiPreview(items, imgData){
+  const box = document.getElementById('aiPreview');
+  const list = document.getElementById('aiList');
+  box.classList.remove('hidden');
+  const catOpts = ['基酒','利口酒','辅料','饮料','水果'].map(c=>`<option value="${c}">${c}</option>`).join('');
+  list.innerHTML = items.map((it,i)=>`
+    <div class="bg-ink2 border border-amber/15 rounded-xl p-3 space-y-2" data-ai-row="${i}">
+      <div class="flex items-center gap-3">
+        <img src="${imgData}" class="w-12 h-12 rounded-lg object-cover flex-shrink-0"/>
+        <div class="flex-1 min-w-0">
+          <input data-i="${i}" data-k="name" value="${it.name}" placeholder="名称"
+            class="w-full bg-transparent border-b border-amber/20 focus:border-amber/60 outline-none text-sm font-semibold pb-1 text-parch"/>
+        </div>
+        <button class="text-mute hover:text-amber text-lg flex-shrink-0" onclick="this.closest('[data-ai-row]').remove()">×</button>
+      </div>
+      <div class="flex gap-2">
+        <select data-i="${i}" data-k="cat" class="w-20 flex-shrink-0 bg-ink2 border border-amber/20 rounded-lg px-2 py-1.5 text-xs text-parch">
+          ${catOpts.replace(`value="${it.cat}"`, `value="${it.cat}" selected`)}
+        </select>
+        <input data-i="${i}" data-k="amount" value="${it.amount||''}" placeholder="ml(可选)"
+          class="w-16 flex-shrink-0 bg-ink2 border border-amber/20 rounded-lg px-2 py-1.5 text-xs text-parch"/>
+      </div>
+    </div>
+  `).join('');
+}
+document.getElementById('aiCancel').addEventListener('click', ()=>{
+  document.getElementById('aiPreview').classList.add('hidden');
+});
+document.getElementById('aiAcceptAll').addEventListener('click', ()=>{
+  document.querySelectorAll('#aiList [data-ai-row]').forEach(row=>{
+    const name = row.querySelector('[data-k=name]').value.trim();
+    const amount = parseInt(row.querySelector('[data-k=amount]').value)||null;
+    const cat = row.querySelector('[data-k=cat]') ? row.querySelector('[data-k=cat]').value : '基酒';
+    if(!name) return;
+    if(state.cabinet.some(c=>c.name===name)) return;
+    state.cabinet.push({ id:Date.now()+Math.floor(Math.random()*1000), cat, name, amount });
+  });
+  save(LS.cabinet, state.cabinet);
+  document.getElementById('aiPreview').classList.add('hidden');
+  renderCabinet();
+  toast('已加入酒柜');
+});
+
+/* =========================================================
+   3) 我的小酒馆（点击直接弹分享卡）
+   ========================================================= */
+function renderBar(){
+  document.getElementById('barCount').textContent = state.bar.length;
+  document.getElementById('barEmpty').classList.toggle('hidden', state.bar.length>0);
+  const grid = document.getElementById('barGrid');
+  grid.innerHTML = state.bar.map(r=>{
+    const photo = r.photo;
+    const cover = photo
+      ? `<img src="${photo}" class="h-24 w-full object-cover rounded-lg mb-2"/>`
+      : `<div class="h-24 rounded-lg mb-2 relative overflow-hidden"
+              style="background: linear-gradient(160deg, ${r.color[0]}, ${r.color[1]});">
+           <div class="absolute right-1.5 top-1.5 text-base">${r.emoji||'🥃'}</div>
+         </div>`;
+    return `
+      <div class="card p-2.5 relative" data-bar-id="${r.id}">
+        <button class="bar-rm-btn absolute right-1.5 top-1.5 z-10 bg-black/55 hover:bg-amber/80 text-parch rounded-full w-6 h-6 flex items-center justify-center text-[12px] leading-none" data-rm-bar="${r.id}" aria-label="删除">×</button>
+        <div class="cursor-pointer" data-open="${r.id}">
+          ${cover}
+          <div class="rune text-amber text-[10px] truncate">${(r.en||'').toUpperCase()}</div>
+          <div class="text-sm font-semibold mt-0.5 truncate">${r.name}</div>
+          <div class="text-[10px] text-mute mt-0.5 truncate">${r.date}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+/* 事件委托：打开详情 + 删除（一次绑定，永远生效） */
+document.getElementById('barGrid').addEventListener('click', function(e){
+  /* 优先处理删除，避免冒泡到打开详情 */
+  const rmBtn = e.target.closest('.bar-rm-btn');
+  if(rmBtn){
+    e.preventDefault(); e.stopPropagation();
+    const id = Number(rmBtn.dataset.rmBar);
+    /* 立即从 DOM 移除卡片，给用户即时反馈 */
+    const card = rmBtn.closest('[data-bar-id]');
+    if(card) card.remove();
+    state.bar = state.bar.filter(x=> Number(x.id) !== id);
+    save(LS.bar, state.bar);
+    renderBar();
+    toast('已删除');
+    return;
+  }
+  const openEl = e.target.closest('[data-open]');
+  if(openEl){
+    const id = parseInt(openEl.dataset.open);
+    const r = state.bar.find(x=>x.id===id); if(!r) return;
+    document.getElementById('shareCanvas').innerHTML = buildShare(r);
+    state.lastResult = r;
+    document.getElementById('shareModal').classList.remove('hidden');
+  }
+});
+let clearBarTap = 0;
+document.getElementById('clearBarBtn').addEventListener('click', ()=>{
+  if(!state.bar.length){ toast('小酒馆已经是空的'); return; }
+  const now = Date.now();
+  if(now - clearBarTap < 3000){
+    // 第二次点击确认清空
+    state.bar = []; save(LS.bar, state.bar); renderBar();
+    clearBarTap = 0;
+    toast('已清空');
+  } else {
+    clearBarTap = now;
+    toast('再点一次确认清空');
+  }
+});
+
+/* =========================================================
+   4) 配方库
+   ========================================================= */
+function renderLib(){
+  const filters = ['全部','金酒','伏特加','威士忌','朗姆酒','龙舌兰','白兰地','利口酒'];
+  document.getElementById('libFilters').innerHTML = filters.map(f=>`
+    <button class="chip ${state.libFilter===f?'active':''}" data-f="${f}">${f}</button>
+  `).join('');
+  document.getElementById('libFilters').querySelectorAll('[data-f]').forEach(b=>{
+    b.addEventListener('click', ()=>{ state.libFilter = b.dataset.f; renderLib(); });
+  });
+  const list = state.libFilter==='全部' ? CLASSICS : CLASSICS.filter(c=>c.base===state.libFilter);
+  const grid = document.getElementById('libGrid');
+  grid.innerHTML = list.map(c=>`
+    <div class="card p-3 cursor-pointer" data-c="${c.name}">
+      <div class="flex items-center justify-between">
+        <div class="rune text-amber text-[10px]">${c.name.toUpperCase()}</div>
+        <span class="chip text-[10px] py-0 px-1.5">难度 · ${c.diff}</span>
+      </div>
+      <div class="text-base font-semibold mt-0.5">${c.cn}</div>
+      <div class="text-[10px] text-mute mt-0.5">基酒 · ${c.base} · ABV ${c.abv}%</div>
+    </div>
+  `).join('');
+  grid.querySelectorAll('[data-c]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const c = CLASSICS.find(x=>x.name===el.dataset.c);
+      showModal(`
+        <div class="rune text-amber text-[10px]">${c.name.toUpperCase()}</div>
+        <div class="text-xl font-bold mt-0.5">${c.cn}</div>
+        <div class="text-[11px] text-mute">${c.base} · ABV ${c.abv}% · 难度 ${c.diff}</div>
+        <div class="my-2 ink-divider"></div>
+        <p class="text-sm leading-relaxed text-parch/90">${c.story}</p>
+        <div class="rune text-amber text-[10px] mt-3 mb-1">RECIPE</div>
+        <ul class="text-xs space-y-1">
+          ${c.recipe.map(([k,v])=>`<li class="flex justify-between border-b border-amber/10 py-1"><span>${k}</span><span class="text-mute">${state.fuzzyMode?fuzzy(v):v}</span></li>`).join('')}
+        </ul>
+        <button class="btn-gold text-xs w-full mt-3" onclick="hideModal();go('brew');">⚗ 用这款灵感开始炼制</button>
+      `);
+    });
+  });
+}
+window.hideModal = hideModal; window.go = go;
+
+/* =========================================================
+   图片预览功能（点击放大、下载）
+   ========================================================= */
+window.openImageModal = function(imageSrc, imageTitle){
+  const modalHtml = `
+    <div style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px;" onclick="this.remove()">
+      <div style="color:#e9dcc1; font-size:14px; margin-bottom:10px;">${imageTitle}</div>
+      <img src="${imageSrc}" style="max-width:100%; max-height:80vh; border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,0.5);" onclick="event.stopPropagation()">
+      <div style="display:flex; gap:10px; margin-top:15px;">
+        <button onclick="downloadImage('${imageSrc}', '${imageTitle}'); event.stopPropagation();" style="background:linear-gradient(180deg,#f0c674,#b9893a); color:#1a140a; padding:8px 20px; border-radius:20px; border:none; font-size:12px; cursor:pointer;">💾 下载图片</button>
+        <button onclick="this.closest('[style*=fixed]').remove(); event.stopPropagation();" style="border:1px solid rgba(212,162,76,.35); background:transparent; color:#f0c674; padding:8px 20px; border-radius:20px; font-size:12px; cursor:pointer;">✕ 关闭</button>
+      </div>
+      <div style="color:#8a8092; font-size:10px; margin-top:10px;">点击背景关闭</div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+};
+
+window.downloadImage = function(imageSrc, imageName){
+  const link = document.createElement('a');
+  link.href = imageSrc;
+  link.download = `${imageName}.jpg`;
+  link.click();
+};
+
+/* =========================================================
+   启动
+   ========================================================= */
+window.addEventListener('load', ()=>{
+  resizeCanvas();
+  initBubbles();
+  frame();
+  renderSelectedStrip();
+  renderCabinet();
+  renderBar();
+  renderLib();
+});
+</script>
+</body>
+</html>
